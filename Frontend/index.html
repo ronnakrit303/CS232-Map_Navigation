@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LC3-Navigator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="logo-section">
+            <div class="logo-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <div class="logo-text">
+                <h1>LC3-Navigator</h1>
+                <p>ระบบนำทางในอาคารบร.3</p>
+            </div>
+        </div>
+        <button id="langToggle" class="lang-btn">TH</button>
+    </nav>
+
+    <div class="search-overlay">
+        <div class="search-box">
+            <i class="fas fa-book-open text-gray"></i>
+            <input type="text" id="searchInput" placeholder="ค้นหาห้องเรียน">
+            <i class="fas fa-search text-gray"></i>
+        </div>
+        <div class="search-tags">
+            <span class="tag-label">แนะนำ:</span>
+            <button class="tag-btn"><i class="fas fa-restroom"></i> ห้องน้ำ</button>
+            <button class="tag-btn"><i class="fas fa-stairs"></i> บันได</button>
+        </div>
+    </div>
+
+    <div class="map-container" id="mapContainer">
+        <img src="resources/LC3-MAP-1stFloor.png" id="mapImage" alt="Map Floor">
+    </div>
+
+    <div class="floor-controls">
+        <button class="floor-btn" data-floor="2">2</button>
+        <button class="floor-btn active" data-floor="1">1</button>
+    </div>
+
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomIn"><i class="fas fa-plus"></i></button>
+        <button class="zoom-btn" id="zoomOut"><i class="fas fa-minus"></i></button>
+    </div>
+    <div class="search-overlay">
+    <div class="search-box">
+        <i class="fas fa-book-open text-gray"></i>
+        <input type="text" id="searchInput" placeholder="ค้นหาห้องเรียน">
+        <i class="fas fa-times text-gray" id="clearSearch" style="display: none; cursor: pointer;"></i>
+    </div>
+    <div class="search-tags" id="searchTags">
+        <span class="tag-label">แนะนำ:</span>
+        <button class="tag-btn"><i class="fas fa-restroom"></i> ห้องน้ำ</button>
+        <button class="tag-btn"><i class="fas fa-stairs"></i> บันได</button>
+    </div>
+</div>
+
+<div id="bottomSheet" class="bottom-sheet">
+    <div class="drag-handle-container" id="dragHandle">
+        <div class="drag-handle"></div>
+    </div>
+    <div id="sheetContent" class="sheet-content"></div>
+</div>
+    <script src="script.js"></script>
+</body>
+</html>
