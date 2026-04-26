@@ -1,252 +1,279 @@
+"""
+seed_db.py - Seeds DynamoDB from graph.json + search_metadata.json
+
+Reads building graph data and supplementary search metadata (courses,
+events) to populate the LocationData DynamoDB table with a unified
+4-category search index: room, course, event, and structural nodes.
+
+Usage:
+    cd infrastructure
+    python seed_db.py
+"""
+
 import boto3
+import json
+import os
+import sys
 
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-table = dynamodb.Table('LC3_SIW_CourseMapping')
+# Fix Windows console encoding for Thai text output
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
 
-ROOM_NAMES = {
-    "101": "Faculty Offices (Mathematics and Statistics)", "101/1": "Lecture Room 4 (Environmental Science)", "101/2": "Graduate Seminar Room (Mathematics and Statistics)",
-    "102/1": "Graduate Seminar Room (Mathematics and Statistics)", "102/2": "Graduate Seminar Room (Mathematics and Statistics)", "103": "Lecture Room", "104": "Lecture Room",
-    "104/1": "Graduate Common Room (Environmental Science)", "105": "Lecture Room", "106": "Lecture Room",
-    "107": "Lecture Room", "108": "Lecture Room", "108/1": "Staff Room", "109": "Lecture Room",
-    "110": "Lecture Room", "111": "Lecture Room", "112": "Restroom", "113": "Restroom", "114": "Restroom",
-    "115": "Seminar in Mathematics and Statistics Room", "116": "Lecture Room", "117": "Lecture Room",
-    "118": "Lecture Room", "118/1": "Lecture Room", "119": "Faculty Offices (Mathematics and Statistics)",
-    "119/1": "Faculty Offices (Mathematics and Statistics)", "119/2": "Faculty Offices (Mathematics and Statistics)",
-    "119/3": "Faculty Offices (Mathematics and Statistics)", "119/4": "Faculty Offices (Mathematics and Statistics)",
-    "119/5": "Faculty Offices (Mathematics and Statistics)", "120": "Storage Room", "121": "Lecture Room",
-    "121/1": "Faculty Offices (Mathematics and Statistics)", "121/2": "Faculty Offices (Mathematics and Statistics)",
-    "121/3": "Faculty Offices (Mathematics and Statistics)", "121/4": "Statistical Consulting for Research Service Room",
-    "121/5": "Faculty Offices (Mathematics and Statistics)", "122": "Lecture Room", "122/1": "Staff Room",
-    "122/2": "Faculty Offices (Mathematics and Statistics)", "122/3": "Faculty Offices (Mathematics and Statistics)",
-    "122/4": "Faculty Offices (Mathematics and Statistics)", "122/5": "Faculty Offices (Mathematics and Statistics)",
-    "122/6": "Faculty Offices (Mathematics and Statistics)", "123": "Faculty Offices (Mathematics and Statistics)",
-    "123/1": "Faculty Offices (Mathematics and Statistics)", "124/1": "Plasma and Nuclear Fusion Lab",
-    "124/2": "Plasma and Nuclear Fusion Lab", "125": "Storage Room", "125/1": "Storage Room",
-    "126": "Faculty of Science and Technology Student Affairs Office", "127": "Faculty Offices (Mathematics and Statistics)",
-    "128": "Electronic Lab", "129": "Electronic Lab", "130": "Storage Room", "131": "Storage Room",
-    "132": "Electricity Control Room", "133": "Restroom", "134": "Restroom", "135/1": "Faculty Offices (Physics)",
-    "135/2": "Faculty Offices (Physics)", "135/3": "Faculty Offices (Physics)",
-    "136": "Faculty Offices (Mathematics and Statistics)", "136/1": "Faculty Offices (Mathematics and Statistics)",
-    "136/2": "Faculty Offices (Mathematics and Statistics)", "136/3": "Faculty Offices (Mathematics and Statistics)",
-    "136/4": "Faculty Offices (Mathematics and Statistics)", "137/1": "Physics Lab", "137/2": "Physics Lab",
-    "137/3": "Physics Lab", "138": "Faculty Offices (Mathematics and Statistics)", "139": "Physics Lab",
-    "140": "Electronic Lab", "141": "Electronic Lab"
+# =========================================================================
+# CONFIGURATION
+# =========================================================================
+AWS_REGION = "us-east-1"
+TABLE_NAME = "LocationData"
+
+# Node types that should be indexed as searchable POIs in DynamoDB
+SEEDABLE_TYPES = {"room", "stairs", "toilet", "elevator", "cafe", "lab", "office", "facility"}
+
+# QR Code Entry Points — these structural nodes are indexed by their
+# friendly name (e.g. 'Junction_SM') so that QR links like
+# ?start=Junction_SM resolve correctly via the search API.
+QR_ENTRY_POINTS = {
+    "Junction_SM",
+    "entry_TLLF",
+    "Junction_NM1",
+    "Junction_SR1",
+    "hallway-5",
+    "hallway-16",
+    "hallway-10",
+    "hallway-12",
 }
 
-COURSES = {
-    "ENV101 Sec 1": "101/2", "ENV102 Sec 1": "102/1", "ENV205 Sec 2": "102/2",
-    "ENV301 Sec 1": "103", "CHM101 Sec 3": "104", "ENV402 Sec 1": "105",
-    "MTH101 Sec 2": "106", "STA201 Sec 1": "107", "PHY101 Sec 4": "108",
-    "CS265 Sec 1": "109", "CS251 Sec 2": "110", "CS262 Sec 1": "111",
-    "MTH202 Sec 1": "116", "PHY102 Sec 2": "117", "CS271 Sec 1": "118",
-    "STA202 Sec 2": "118/1", "CS232 Sec 1": "121", "CS101 Sec 1": "122"
-}
+# =========================================================================
+# LOAD DATA FILES
+# =========================================================================
+print("=" * 60)
+print("  DynamoDB Seeder — 4-Category Search Index")
+print("=" * 60)
 
-EVENTS = {
-    "Science Faculty Townhall": "135/1", "Science Project Pitching": "135/1",
-    "Electronics Lab Safety Training": "141", "Sci-Tech Hackathon 2026": "141",
-    "ลองชุดช็อปคณะวิทยาศาสตร์": "126", "ลงทะเบียนชมรมคณะวิดยา": "126"
-}
+base_dir = os.path.dirname(os.path.abspath(__file__))
 
-MAP_DATA = {
-  "building": "LC3",
-  "nodes": [
-    {"id": "LC3_hallway-1", "name": "hallway-1", "floor": 1, "x": 17.5, "y": 16.5, "type": "junction"},
-    {"id": "LC3_hallway-2", "name": "hallway-2", "floor": 1, "x": 51.6, "y": 16.7, "type": "junction"},
-    {"id": "LC3_hallway-3", "name": "hallway-3", "floor": 1, "x": 51.5, "y": 31.4, "type": "junction"},
-    {"id": "LC3_hallway-4", "name": "hallway-4", "floor": 1, "x": 53.7, "y": 31.3, "type": "junction"},
-    {"id": "LC3_hallway-5", "name": "hallway-5", "floor": 1, "x": 52.3, "y": 36.8, "type": "junction"},
-    {"id": "LC3_hallway-6", "name": "hallway-6", "floor": 1, "x": 52.4, "y": 58.3, "type": "junction"},
-    {"id": "LC3_hallway-7", "name": "hallway-7", "floor": 1, "x": 17.9, "y": 58.5, "type": "junction"},
-    {"id": "LC3_hallway-8", "name": "hallway-8", "floor": 1, "x": 18, "y": 41.9, "type": "junction"},
-    {"id": "LC3_hallway-9", "name": "hallway-9", "floor": 1, "x": 15.2, "y": 41.4, "type": "junction"},
-    {"id": "LC3_109", "name": "109", "floor": 1, "x": 14.5, "y": 13.7, "type": "room"},
-    {"id": "LC3_110", "name": "110", "floor": 1, "x": 13.9, "y": 17.1, "type": "room"},
-    {"id": "LC3_111", "name": "111", "floor": 1, "x": 14, "y": 25.1, "type": "room"},
-    {"id": "LC3_115", "name": "115", "floor": 1, "x": 13.6, "y": 48.5, "type": "room"},
-    {"id": "LC3_116", "name": "116", "floor": 1, "x": 13.6, "y": 57.9, "type": "room"},
-    {"id": "LC3_117", "name": "117", "floor": 1, "x": 14, "y": 61.5, "type": "room"},
-    {"id": "LC3_118", "name": "118", "floor": 1, "x": 18, "y": 62.4, "type": "room"},
-    {"id": "LC3_118/1", "name": "118/1", "floor": 1, "x": 26.1, "y": 62.6, "type": "room"},
-    {"id": "LC3_120", "name": "120", "floor": 1, "x": 28.7, "y": 63, "type": "room"},
-    {"id": "LC3_121", "name": "121", "floor": 1, "x": 31.7, "y": 62.6, "type": "room"},
-    {"id": "LC3_121/1", "name": "121/1", "floor": 1, "x": 40.3, "y": 63.9, "type": "room"},
-    {"id": "LC3_121/2", "name": "121/2", "floor": 1, "x": 42, "y": 60.4, "type": "room"},
-    {"id": "LC3_121/3", "name": "121/3", "floor": 1, "x": 44.3, "y": 64.9, "type": "room"},
-    {"id": "LC3_108/1", "name": "108/1", "floor": 1, "x": 16.7, "y": 11, "type": "room"},
-    {"id": "LC3_108", "name": "108", "floor": 1, "x": 21.4, "y": 12.7, "type": "room"},
-    {"id": "LC3_106", "name": "106", "floor": 1, "x": 24.2, "y": 12.7, "type": "room"},
-    {"id": "LC3_104/1", "name": "104/1", "floor": 1, "x": 28.3, "y": 11.8, "type": "room"},
-    {"id": "LC3_104", "name": "104", "floor": 1, "x": 32.4, "y": 11.6, "type": "room"},
-    {"id": "LC3_103", "name": "103", "floor": 1, "x": 36.3, "y": 13.1, "type": "room"},
-    {"id": "LC3_102/2", "name": "102/2", "floor": 1, "x": 40.9, "y": 13.5, "type": "room"},
-    {"id": "LC3_102/1", "name": "102/1", "floor": 1, "x": 43.8, "y": 13.1, "type": "room"},
-    {"id": "LC3_107", "name": "107", "floor": 1, "x": 24.2, "y": 19.9, "type": "room"},
-    {"id": "LC3_105", "name": "105", "floor": 1, "x": 28, "y": 19.9, "type": "room"},
-    {"id": "LC3_101/1", "name": "101/1", "floor": 1, "x": 31.6, "y": 19.9, "type": "room"},
-    {"id": "LC3_101/2", "name": "101/2", "floor": 1, "x": 36.1, "y": 20.4, "type": "room"},
-    {"id": "LC3_101", "name": "101", "floor": 1, "x": 46.8, "y": 24.2, "type": "room"},
-    {"id": "LC3_119", "name": "119", "floor": 1, "x": 20.4, "y": 54.7, "type": "room"},
-    {"id": "LC3_119/1", "name": "119/1", "floor": 1, "x": 22, "y": 54.7, "type": "room"},
-    {"id": "LC3_119/2", "name": "119/2", "floor": 1, "x": 24, "y": 55, "type": "room"},
-    {"id": "LC3_119/3", "name": "119/3", "floor": 1, "x": 25.5, "y": 54.8, "type": "room"},
-    {"id": "LC3_119/4", "name": "119/4", "floor": 1, "x": 27.5, "y": 55.2, "type": "room"},
-    {"id": "LC3_119/5", "name": "119/5", "floor": 1, "x": 29.2, "y": 55.2, "type": "room"},
-    {"id": "LC3_122", "name": "122", "floor": 1, "x": 31.9, "y": 54.9, "type": "room"},
-    {"id": "LC3_122/1", "name": "122/1", "floor": 1, "x": 41.1, "y": 53.7, "type": "room"},
-    {"id": "LC3_122/2", "name": "122/2", "floor": 1, "x": 42, "y": 56.2, "type": "room"},
-    {"id": "LC3_122/3", "name": "122/3", "floor": 1, "x": 43.4, "y": 53.9, "type": "room"},
-    {"id": "LC3_122/4", "name": "122/4", "floor": 1, "x": 46, "y": 53.3, "type": "room"},
-    {"id": "LC3_122/5", "name": "122/5", "floor": 1, "x": 47.4, "y": 56.6, "type": "room"},
-    {"id": "LC3_122/6", "name": "122/6", "floor": 1, "x": 48.8, "y": 53.9, "type": "room"},
-    {"id": "LC3_entry-1", "name": "entry-1", "floor": 1, "x": 21.1, "y": 16.7, "type": "entrance"},
-    {"id": "LC3_entry-2", "name": "entry-2", "floor": 1, "x": 24.3, "y": 16.7, "type": "entrance"},
-    {"id": "LC3_entry-3", "name": "entry-3", "floor": 1, "x": 28.3, "y": 16.7, "type": "entrance"},
-    {"id": "LC3_entry-4", "name": "entry-4", "floor": 1, "x": 31.8, "y": 16.7, "type": "entrance"},
-    {"id": "LC3_entry-5", "name": "entry-5", "floor": 1, "x": 36.1, "y": 16.7, "type": "entrance"},
-    {"id": "LC3_entry-6", "name": "entry-6", "floor": 1, "x": 40.9, "y": 16.7, "type": "entrance"},
-    {"id": "LC3_entry-7", "name": "entry-7", "floor": 1, "x": 44, "y": 16.7, "type": "entrance"},
-    {"id": "LC3_entry-8", "name": "entry-8", "floor": 1, "x": 51.5, "y": 24.2, "type": "entrance"},
-    {"id": "LC3_entry-9", "name": "entry-9", "floor": 1, "x": 52.4, "y": 53.9, "type": "entrance"},
-    {"id": "LC3_entry-10", "name": "entry-10", "floor": 1, "x": 44.6, "y": 58.2, "type": "entrance"},
-    {"id": "LC3_entry-11", "name": "entry-11", "floor": 1, "x": 40.4, "y": 58, "type": "entrance"},
-    {"id": "LC3_entry-12", "name": "entry-12", "floor": 1, "x": 31.2, "y": 58.3, "type": "entrance"},
-    {"id": "LC3_entry-13", "name": "entry-13", "floor": 1, "x": 29, "y": 58.3, "type": "entrance"},
-    {"id": "LC3_entry-14", "name": "entry-14", "floor": 1, "x": 27.1, "y": 58.5, "type": "entrance"},
-    {"id": "LC3_entry-15", "name": "entry-15", "floor": 1, "x": 25.3, "y": 58.5, "type": "entrance"},
-    {"id": "LC3_entry-16", "name": "entry-16", "floor": 1, "x": 23.5, "y": 58.5, "type": "entrance"},
-    {"id": "LC3_entry-17", "name": "entry-17", "floor": 1, "x": 21.8, "y": 58.4, "type": "entrance"},
-    {"id": "LC3_entry-18", "name": "entry-18", "floor": 1, "x": 20.1, "y": 58.5, "type": "entrance"},
-    {"id": "LC3_entry-19", "name": "entry-19", "floor": 1, "x": 18, "y": 48.6, "type": "entrance"},
-    {"id": "LC3_entry-20", "name": "entry-20", "floor": 1, "x": 17.7, "y": 25.5, "type": "entrance"},
-    {"id": "LC3_stair-1", "name": "stair-1", "floor": 1, "x": 17, "y": 40.1, "type": "stairs"},
-    {"id": "LC3_stair-2", "name": "stair-2", "floor": 1, "x": 51.7, "y": 35, "type": "stairs"}
-  ],
-  "edges": [
-    {"from": "LC3_hallway-1", "to": "LC3_entry-1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-1", "to": "LC3_entry-2", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-2", "to": "LC3_entry-3", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-3", "to": "LC3_entry-4", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-4", "to": "LC3_entry-5", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-5", "to": "LC3_entry-6", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-6", "to": "LC3_entry-7", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-7", "to": "LC3_hallway-2", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-2", "to": "LC3_entry-8", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-8", "to": "LC3_hallway-3", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-3", "to": "LC3_hallway-4", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-4", "to": "LC3_hallway-5", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-5", "to": "LC3_entry-9", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-9", "to": "LC3_hallway-6", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-6", "to": "LC3_entry-10", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-10", "to": "LC3_entry-11", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-11", "to": "LC3_entry-12", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-12", "to": "LC3_entry-13", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-13", "to": "LC3_entry-14", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-14", "to": "LC3_entry-15", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-15", "to": "LC3_entry-16", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-16", "to": "LC3_entry-17", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-17", "to": "LC3_entry-18", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-18", "to": "LC3_hallway-7", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-7", "to": "LC3_entry-19", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-8", "to": "LC3_entry-20", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-20", "to": "LC3_hallway-1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-20", "to": "LC3_111", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-1", "to": "LC3_110", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-1", "to": "LC3_109", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-1", "to": "LC3_108/1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-1", "to": "LC3_108", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-2", "to": "LC3_106", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-2", "to": "LC3_107", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-3", "to": "LC3_104/1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-3", "to": "LC3_105", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-4", "to": "LC3_104", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-4", "to": "LC3_101/1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-5", "to": "LC3_103", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-5", "to": "LC3_101/2", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-6", "to": "LC3_102/2", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-7", "to": "LC3_102/1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-8", "to": "LC3_101", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-8", "to": "LC3_hallway-9", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-9", "to": "LC3_stair-1", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-5", "to": "LC3_stair-2", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-10", "to": "LC3_122/2", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-10", "to": "LC3_122/3", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-10", "to": "LC3_122/4", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-10", "to": "LC3_122/5", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-9", "to": "LC3_122/6", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-10", "to": "LC3_121/3", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-10", "to": "LC3_121/2", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-11", "to": "LC3_122/1", "type": "walk", "distance": 0},
-    {"from": "LC3_122/2", "to": "LC3_122/1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-11", "to": "LC3_121/1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-12", "to": "LC3_122", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-12", "to": "LC3_121", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-13", "to": "LC3_120", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-13", "to": "LC3_119/5", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-14", "to": "LC3_118/1", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-14", "to": "LC3_119/4", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-15", "to": "LC3_119/3", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-16", "to": "LC3_119/2", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-17", "to": "LC3_hallway-7", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-18", "to": "LC3_119", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-7", "to": "LC3_118", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-7", "to": "LC3_117", "type": "walk", "distance": 0},
-    {"from": "LC3_hallway-7", "to": "LC3_116", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-19", "to": "LC3_115", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-19", "to": "LC3_hallway-8", "type": "walk", "distance": 0},
-    {"from": "LC3_entry-17", "to": "LC3_119/1", "type": "walk", "distance": 0}
-  ]
-}
+# --- graph.json (required) ---
+graph_path = os.path.join(base_dir, "graph.json")
+if not os.path.exists(graph_path):
+    print(f"  FATAL: graph.json not found at {graph_path}")
+    sys.exit(1)
 
-node_id_lookup = { node["id"]: node for node in MAP_DATA["nodes"] }
+with open(graph_path, "r", encoding="utf-8") as f:
+    MAP_DATA = json.load(f)
 
+# --- search_metadata.json (optional — courses & events) ---
+metadata_path = os.path.join(base_dir, "search_metadata.json")
+SEARCH_METADATA = []
+if os.path.exists(metadata_path):
+    with open(metadata_path, "r", encoding="utf-8") as f:
+        SEARCH_METADATA = json.load(f)
+    print(f"  Metadata : {len(SEARCH_METADATA)} entries loaded from search_metadata.json")
+else:
+    print("  Metadata : search_metadata.json not found (skipping)")
+
+nodes = MAP_DATA.get("nodes", [])
+edges = MAP_DATA.get("edges", [])
+building = MAP_DATA.get("building", "LC3")
+
+print(f"  Building : {building}")
+print(f"  Nodes    : {len(nodes)}")
+print(f"  Edges    : {len(edges)}")
+
+# =========================================================================
+# BUILD LOOKUP MAPS
+# =========================================================================
+node_by_id = {n["id"]: n for n in nodes}
+
+# Map each room node to its best non-room neighbour (entry point for A*)
 room_entry_map = {}
-for edge in MAP_DATA["edges"]:
-    u, v = edge["from"], edge["to"]
-    u_is_room = u in node_id_lookup and node_id_lookup[u]["type"] == "room"
-    v_is_room = v in node_id_lookup and node_id_lookup[v]["type"] == "room"
-    if u_is_room and not v_is_room:
-        room_entry_map[u] = v
-    elif v_is_room and not u_is_room:
-        room_entry_map[v] = u
+for edge in edges:
+    u, v = edge.get("from", ""), edge.get("to", "")
+    u_node = node_by_id.get(u)
+    v_node = node_by_id.get(v)
+    if not u_node or not v_node:
+        continue
+    if u_node.get("type") == "room" and v_node.get("type") != "room":
+        room_entry_map.setdefault(u, v)
+    elif v_node.get("type") == "room" and u_node.get("type") != "room":
+        room_entry_map.setdefault(v, u)
 
-def get_location_details(room_num):
-    node_id = f"LC3_{room_num}"
-    if node_id in node_id_lookup and node_id_lookup[node_id]["type"] == "room":
-        x = str(node_id_lookup[node_id]["x"])
-        y = str(node_id_lookup[node_id]["y"])
-        entry_node = room_entry_map.get(node_id, "Pending")
-        return x, y, node_id, entry_node
-    return "0.0", "0.0", node_id, "Pending"
+
+def bare_room_name(node):
+    """Return the short display name of a node (e.g. '204')."""
+    return node.get("name", node["id"])
+
+
+def resolve_node(identifier):
+    """Resolve a node by ID first, then by name. Returns the node dict or None."""
+    if identifier in node_by_id:
+        return node_by_id[identifier]
+    # Fallback: search by node name
+    for n in nodes:
+        if n.get("name") == identifier:
+            return n
+    return None
+
+# =========================================================================
+# CONNECT TO DYNAMODB & CLEAR OLD DATA
+# =========================================================================
+dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
+table = dynamodb.Table(TABLE_NAME)
+
+print(f"\n  Target   : {TABLE_NAME} ({AWS_REGION})")
+print("  Clearing old data...")
+
+scan_response = table.scan()
+old_items = scan_response.get("Items", [])
+
+while scan_response.get("LastEvaluatedKey"):
+    scan_response = table.scan(ExclusiveStartKey=scan_response["LastEvaluatedKey"])
+    old_items.extend(scan_response.get("Items", []))
+
+deleted = 0
+with table.batch_writer() as batch:
+    for item in old_items:
+        key = {"SearchTerm": item["SearchTerm"]}
+        if "Detail" in item:
+            key["Detail"] = item["Detail"]
+        batch.delete_item(Key=key)
+        deleted += 1
+
+print(f"  Deleted  : {deleted} old records")
+
+# =========================================================================
+# SEED NEW DATA
+# =========================================================================
+print("\n  Seeding new data...\n")
+
+room_count = 0
+structural_count = 0
+course_count = 0
+event_count = 0
 
 with table.batch_writer() as batch:
-    for room_num, room_name in ROOM_NAMES.items():
-        x_val, y_val, node_id, entry_node = get_location_details(room_num)
-        batch.put_item(Item={
-            'SearchTerm': f"LC3-{room_num}", 'Detail': 'ROOM', 'NodeID': node_id,
-            'NodeEntry': entry_node, 'RoomNumber': f"LC3-{room_num}", 'RoomName': room_name,
-            'Floor': '1', 'X': x_val, 'Y': y_val, 'NodeType': 'room'
-        })
-    for node in MAP_DATA["nodes"]:
-        if node["type"] != "room":
-            batch.put_item(Item={
-                'SearchTerm': node["id"], 'Detail': 'NODE', 'NodeID': node['id'],
-                'NodeEntry': node['id'], 'RoomNumber': node["name"], 'RoomName': node["type"].capitalize(),
-                'Floor': str(node['floor']), 'X': str(node['x']), 'Y': str(node['y']), 'NodeType': node['type']
-            })
-    for course, r_num in COURSES.items():
-        x, y, nid, entry = get_location_details(r_num)
-        batch.put_item(Item={
-            'SearchTerm': course, 'Detail': 'COURSE', 'NodeID': nid, 'NodeEntry': entry,
-            'RoomNumber': f"LC3-{r_num}", 'RoomName': ROOM_NAMES.get(r_num, "Lecture Room"),
-            'Floor': '1', 'X': x, 'Y': y, 'NodeType': 'room'
-        })
-    for event, r_num in EVENTS.items():
-        x, y, nid, entry = get_location_details(r_num)
-        batch.put_item(Item={
-            'SearchTerm': event, 'Detail': 'EVENT', 'NodeID': nid, 'NodeEntry': entry,
-            'RoomNumber': f"LC3-{r_num}", 'RoomName': ROOM_NAMES.get(r_num, "Event Room"),
-            'Floor': '1', 'X': x, 'Y': y, 'NodeType': 'room'
-        })
 
-print("Update seeding with updated coordinates and NodeEntry completed.")
+    # -----------------------------------------------------------------
+    # 1) ROOMS & POIs from graph.json
+    # -----------------------------------------------------------------
+    for node in nodes:
+        node_id = node["id"]
+        node_type = node.get("type", "")
+        floor = str(node.get("floor", 1))
+
+        if node_type in SEEDABLE_TYPES:
+            search_name = bare_room_name(node)
+            label = node.get("label", "")
+            entry_node = room_entry_map.get(node_id, node_id)
+            detail = "ROOM" if node_type == "room" else "POI"
+
+            batch.put_item(Item={
+                "SearchTerm": search_name,
+                "Detail": detail,
+                "NodeID": node_id,
+                "NodeEntry": entry_node,
+                "RoomNumber": f"{building}-{search_name}",
+                "RoomName": label if label else search_name,
+                "Floor": floor,
+                "X": str(node.get("x", 0)),
+                "Y": str(node.get("y", 0)),
+                "NodeType": node_type,
+                "category": "room",
+            })
+            room_count += 1
+        else:
+            # Structural / QR entry-point nodes
+            node_name = node.get("name", node_id)
+            search_key = node_name if node_name in QR_ENTRY_POINTS else node_id
+
+            batch.put_item(Item={
+                "SearchTerm": search_key,
+                "Detail": "NODE",
+                "NodeID": node_id,
+                "NodeEntry": node_id,
+                "RoomNumber": node_name,
+                "RoomName": node_type.capitalize() if node_type else "Node",
+                "Floor": floor,
+                "X": str(node.get("x", 0)),
+                "Y": str(node.get("y", 0)),
+                "NodeType": node_type,
+            })
+            structural_count += 1
+
+    # -----------------------------------------------------------------
+    # 2) COURSES & EVENTS from search_metadata.json
+    # -----------------------------------------------------------------
+    for entry in SEARCH_METADATA:
+        cat = entry.get("category", "")
+        raw_node_id = entry.get("node_id", "")
+
+        if not raw_node_id:
+            continue
+
+        target_node = resolve_node(raw_node_id)
+        if not target_node:
+            print(f"  [MISSING] {cat} → node '{raw_node_id}' not found in graph.")
+            continue
+
+        nid = target_node["id"]
+        entry_node = room_entry_map.get(nid, nid)
+        target_name = bare_room_name(target_node)
+        floor = str(target_node.get("floor", 1))
+
+        if cat == "course":
+            course_id = entry.get("course_id", "")
+            sec = entry.get("sec", "")
+            search_term = f"{course_id} Sec {sec}"
+            detail = "COURSE"
+
+            batch.put_item(Item={
+                "SearchTerm": search_term,
+                "Detail": detail,
+                "NodeID": nid,
+                "NodeEntry": entry_node,
+                "RoomNumber": f"{building}-{target_name}",
+                "RoomName": target_node.get("label", search_term),
+                "Floor": floor,
+                "X": str(target_node.get("x", 0)),
+                "Y": str(target_node.get("y", 0)),
+                "NodeType": target_node.get("type", "room"),
+                "category": "course",
+            })
+            course_count += 1
+
+        elif cat == "event":
+            event_name = entry.get("name", "")
+            if not event_name:
+                continue
+            detail = "EVENT"
+
+            batch.put_item(Item={
+                "SearchTerm": event_name,
+                "Detail": detail,
+                "NodeID": nid,
+                "NodeEntry": entry_node,
+                "RoomNumber": f"{building}-{target_name}",
+                "RoomName": target_node.get("label", event_name),
+                "Floor": floor,
+                "X": str(target_node.get("x", 0)),
+                "Y": str(target_node.get("y", 0)),
+                "NodeType": target_node.get("type", "room"),
+                "category": "event",
+            })
+            event_count += 1
+
+        else:
+            print(f"  [SKIP] Unknown category '{cat}' for node '{raw_node_id}'")
+
+# =========================================================================
+# SUMMARY
+# =========================================================================
+total = room_count + structural_count + course_count + event_count
+print("=" * 60)
+print(f"  SUCCESS: Database Seeding Complete!")
+print("")
+print(f"  🚪  Room / POI records : {room_count}")
+print(f"  🔧  Structural nodes   : {structural_count}")
+print(f"  📚  Course records     : {course_count}")
+print(f"  📅  Event records      : {event_count}")
+print(f"  -----------------------------")
+print(f"  Total inserted         : {total}")
+print("=" * 60)
