@@ -118,18 +118,29 @@ body {
 .map-container {
     width: 100vw;
     height: calc(100vh - 60px);
-    overflow: auto; /* ให้เลื่อนดูแผนที่ได้ */
+    overflow: hidden; /* ปิด Scrollbar ของเบราว์เซอร์ */
     position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    touch-action: none; /* ป้องกันไม่ให้มือถือเด้งเวลารูดจอ */
+    cursor: grab;
+}
+
+.map-container:active {
+    cursor: grabbing;
+}
+
+#mapWrapper {
+    transform-origin: 0 0; /* สำคัญมาก: ให้จุดหมุนอยู่มุมซ้ายบน เพื่อให้คำนวณตำแหน่งเป๊ะ */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    will-change: transform; /* ช่วยให้มือถือเรนเดอร์ภาพสมูทขึ้น */
 }
 
 #mapImage {
-    transform-origin: center center;
-    transition: transform 0.2s ease;
-    /* ในการใช้งานจริงอาจจะต้องปรับ max-width ให้เหมาะสมกับรูป */
-    max-width: 100%; 
+    display: block;
+    max-width: none; /* ปลดล็อคไม่ให้เบราว์เซอร์บีบภาพ */
 }
 
 /* ปุ่มเลือกลอยตัว (ชั้น) */
@@ -223,6 +234,8 @@ body {
 .sheet-content {
     padding: 10px 20px 30px;
     overflow-y: auto;
+    flex: 1;
+    min-height: 0;
 }
 
 /* --- Search Results State --- */
