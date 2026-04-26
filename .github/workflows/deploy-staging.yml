@@ -1,0 +1,67 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy-frontend:
+    name: Sync Frontend to S3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Sync Frontend to S3
+        run: |
+          aws s3 sync Frontend/ s3://lc3-navigator-static-staging \
+            --delete \
+            --exclude '*.DS_Store'
+
+  deploy-lambdas:
+    name: Update Lambda Functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Deploy lc3-search-staging
+        run: |
+          cd Backend/lambdas/search
+          zip -r /tmp/lc3-search.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name lc3-search-staging \
+            --zip-file fileb:///tmp/lc3-search.zip
+
+      - name: Deploy lc3-pathfinding-staging
+        run: |
+          cd Backend/lambdas/pathfinding
+          zip -r /tmp/lc3-pathfinding.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name lc3-pathfinding-staging \
+            --zip-file fileb:///tmp/lc3-pathfinding.zip
+
+      - name: Deploy lc3-direction-staging
+        run: |
+          cd Backend/lambdas/direction
+          zip -r /tmp/lc3-direction.zip lambda_function.py
+          aws lambda update-function-code \
+            --function-name lc3-direction-staging \
+            --zip-file fileb:///tmp/lc3-direction.zip
