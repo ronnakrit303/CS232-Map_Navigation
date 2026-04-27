@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
+
 <body>
     <nav class="top-nav">
         <div class="logo-section">
@@ -19,18 +21,7 @@
         <button id="langToggle" class="lang-btn">TH</button>
     </nav>
 
-    <div class="search-overlay">
-        <div class="search-box">
-            <i class="fas fa-book-open text-gray"></i>
-            <input type="text" id="searchInput" placeholder="ค้นหาห้องเรียน">
-            <i class="fas fa-search text-gray"></i>
-        </div>
-        <div class="search-tags">
-            <span class="tag-label">แนะนำ:</span>
-            <button class="tag-btn"><i class="fas fa-restroom"></i> ห้องน้ำ</button>
-            <button class="tag-btn"><i class="fas fa-stairs"></i> บันได</button>
-        </div>
-    </div>
+
 
     <div class="map-container" id="mapContainer">
         <div id="mapWrapper">
@@ -48,24 +39,46 @@
         <button class="zoom-btn" id="zoomOut"><i class="fas fa-minus"></i></button>
     </div>
     <div class="search-overlay">
-    <div class="search-box">
-        <i class="fas fa-book-open text-gray"></i>
-        <input type="text" id="searchInput" placeholder="ค้นหาห้องเรียน">
-        <i class="fas fa-times text-gray" id="clearSearch" style="display: none; cursor: pointer;"></i>
-    </div>
-    <div class="search-tags" id="searchTags">
-        <span class="tag-label">แนะนำ:</span>
-        <button class="tag-btn"><i class="fas fa-restroom"></i> ห้องน้ำ</button>
-        <button class="tag-btn"><i class="fas fa-stairs"></i> บันได</button>
-    </div>
-</div>
+        <div class="search-box">
+            <i class="fas fa-book-open text-gray"></i>
+            <input type="text" id="searchInput" placeholder="ค้นหาห้องเรียน">
+            <i class="fas fa-times text-gray" id="clearSearch" style="display: none; cursor: pointer;"></i>
+        </div>
+        <div class="search-tags" id="searchTags" style="margin-bottom: 15px;">
+            <span class="tag-label">แนะนำ:</span>
+            <button class="tag-btn"><i class="fas fa-restroom"></i> ห้องน้ำ</button>
+            <button class="tag-btn"><i class="fas fa-stairs"></i> บันได</button>
+        </div>
 
-<div id="bottomSheet" class="bottom-sheet">
-    <div class="drag-handle-container" id="dragHandle">
-        <div class="drag-handle"></div>
+        <!-- ── Search Panel (US2) ── -->
+        <div class="input-group" style="border-top: 1px solid #eee; padding-top: 15px;">
+            <div class="input-wrapper" style="margin-bottom: 10px;">
+                <div class="search-box" style="margin-bottom: 0;">
+                    <span class="tiny-label" style="font-size: 12px; font-weight: bold; margin-right: 10px; color: #888;">FROM:</span>
+                    <input type="text" id="start-query" placeholder="101" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
+                </div>
+                <div class="suggestion-list" id="start-suggestions"></div>
+            </div>
+
+            <div class="input-wrapper" style="margin-bottom: 15px;">
+                <div class="search-box" style="margin-bottom: 0;">
+                    <span class="tiny-label" style="font-size: 12px; font-weight: bold; margin-right: 10px; color: #888;">TO:</span>
+                    <input type="text" id="goal-query" placeholder="204" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
+                </div>
+                <div class="suggestion-list" id="goal-suggestions"></div>
+            </div>
+
+            <button id="btn-navigate" onclick="navigateUser(event)" style="width: 100%; padding: 10px; background: #1a4d8c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Navigate</button>
+        </div>
     </div>
-    <div id="sheetContent" class="sheet-content"></div>
-</div>
+
+    <div id="bottomSheet" class="bottom-sheet">
+        <div class="drag-handle-container" id="dragHandle">
+            <div class="drag-handle"></div>
+        </div>
+        <div id="sheetContent" class="sheet-content"></div>
+    </div>
     <script src="script.js"></script>
 </body>
+
 </html>

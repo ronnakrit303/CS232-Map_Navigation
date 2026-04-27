@@ -327,3 +327,155 @@ body {
     cursor: pointer;
 }
 .tip-text { text-align: center; font-size: 12px; color: #888; margin-top: 15px; }
+/* =====================================================
+   US2 — ROOM NAME SEARCH AUTOCOMPLETE
+   ===================================================== */
+
+/* Wrapper that enables absolute positioning of the dropdown */
+.input-wrapper {
+  position: relative;
+}
+
+/* Dropdown container — hidden by default */
+.suggestion-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  min-width: 220px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--panel-bg-solid, rgba(15, 23, 42, 0.97));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.15));
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 500;
+  display: none;
+}
+
+/* Visible state — toggled by JS */
+.suggestion-list.active {
+  display: block;
+  animation: suggestionFadeIn 0.15s ease-out forwards;
+}
+
+@keyframes suggestionFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Each suggestion row */
+.suggestion-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+  background: var(--suggestion-hover, rgba(59, 130, 246, 0.15));
+  border-left-color: var(--primary, #3b82f6);
+}
+
+/* Room number / name line */
+.suggestion-item .room-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main, #f8fafc);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.suggestion-item .room-name .type-icon {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* Subtitle — Thai room name / label */
+.suggestion-item .room-label {
+  font-size: 0.68rem;
+  color: var(--text-muted, #cbd5e1);
+  opacity: 0.7;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Floor tag (F1, F2…) */
+.suggestion-item .floor-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--primary, #3b82f6);
+  opacity: 0.8;
+}
+
+/* Category badge pills */
+.search-type-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 50px;
+  margin-left: auto;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+
+.badge-event {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-course {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Event / Course row accent colours */
+.suggestion-type-event { border-left-color: #f59e0b; }
+.suggestion-type-event:hover,
+.suggestion-type-event.active {
+  background: rgba(245, 158, 11, 0.1);
+  border-left-color: #f59e0b;
+}
+
+.suggestion-type-course { border-left-color: #10b981; }
+.suggestion-type-course:hover,
+.suggestion-type-course.active {
+  background: rgba(16, 185, 129, 0.1);
+  border-left-color: #10b981;
+}
+
+/* Thin scrollbar */
+.suggestion-list::-webkit-scrollbar       { width: 4px; }
+.suggestion-list::-webkit-scrollbar-track { background: transparent; }
+.suggestion-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.15));
+  border-radius: 4px;
+}
+
+/* Mobile: fix to screen instead of relative to input */
+@media (pointer: coarse) {
+  .suggestion-list {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: auto;
+    min-width: unset;
+    max-height: 200px;
+    z-index: 300;
+  }
+}
