@@ -1,47 +1,3 @@
-async function initMap() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentLocationId = urlParams.get('loc_id');
-
-    if (currentLocationId) {
-        try {
-            const response = await fetch('graph.json');
-            if (!response.ok) throw new Error("หาไฟล์ไม่เจอ");
-            
-            const data = await response.json();
-
-            // ค้นหาห้องจากในไฟล์ JSON
-            const locationData = data.nodes.find(node => node.id === currentLocationId);
-
-            if (locationData) {
-                const activeFloorBtn = document.querySelector('.floor-btn.active');
-                const currentFloorOnUI = activeFloorBtn ? activeFloorBtn.getAttribute('data-floor') : '1';
-
-                // สลับชั้นถ้ายืนอยู่คนละชั้น
-                if (String(locationData.floor) !== currentFloorOnUI) {
-                    const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${locationData.floor}"]`);
-                    if (targetFloorBtn) {
-                        targetFloorBtn.click();
-                        setTimeout(() => {
-                            setInitialLocation(locationData.x, locationData.y, 2.5);
-                        }, 500);
-                    }
-                } else {
-                    setInitialLocation(locationData.x, locationData.y, 2.5);
-                }
-            } else {
-                console.error("ไม่พบห้องนี้", currentLocationId);
-            }
-        } catch (error) {
-            console.error("เกิดข้อผิดพลาด:", error);
-        }
-    } else {
-        // ถ้าเปิดเว็บมาเฉยๆให้โชว์จุดเริ่มต้นตรงนี้
-        setTimeout(() => {
-            setInitialLocation(193, 175, 2.5); // เปลี่ยน x, y เป็นจุดโถงชั้น 1
-        }, 500);
-    }
-}
-
 function debounce(func, delay) {
     let timeout;
     return function (...args) {
@@ -218,42 +174,74 @@ document.addEventListener('DOMContentLoaded', function () {
         updateMapTransform();
     }, { passive: false });
 
-    // ==========================================
-    // ล็อคเป้าหมายเริ่มต้น (Initial Location & Navigation)
-    // ==========================================
-    function setInitialLocation(xPercent, yPercent, startZoom) {
-        currentScale = startZoom;
-        const targetPixelX = (xPercent / 100) * (mapImage.naturalWidth || 1000);
-        const targetPixelY = (yPercent / 100) * (mapImage.naturalHeight || 800);
-        
-        // คำนวณให้จุดเป้าหมายอยู่กึ่งกลางหน้าจอ
-        panX = (mapContainer.clientWidth / 2) - (targetPixelX * currentScale);
-        panY = (mapContainer.clientHeight / 2) - (targetPixelY * currentScale);
-        
-        updateMapTransform();
-        highlightRoom(xPercent, yPercent);
+// ==========================================
+// ล็อคเป้าหมายเริ่มต้น (เปลี่ยนมารับค่า Pixel จริงจาก graph.json)
+// ==========================================
+function setInitialLocation(x, y, startZoom) {
+    currentScale = startZoom;
+    
+    // รับค่าพิกัดมาตรงๆ ไม่ต้องเอาไปหาร 100 แล้ว
+    const targetPixelX = parseFloat(x);
+    const targetPixelY = parseFloat(y);
+    
+    // คำนวณให้จุดเป้าหมายอยู่กึ่งกลางหน้าจอ
+    panX = (mapContainer.clientWidth / 2) - (targetPixelX * currentScale);
+    panY = (mapContainer.clientHeight / 2) - (targetPixelY * currentScale);
+    
+    updateMapTransform();
+    
+    // แจ้งเตือนดูว่าพิกัดถูกต้องไหม (ถ้าเทสผ่านแล้ว ลบบรรทัด log นี้ทิ้งได้ครับ)
+    console.log("เลื่อนแผนที่ไปที่ Pixel X:", targetPixelX, " Y:", targetPixelY);
+    
+    // ส่งพิกัดไปให้ฟังก์ชันวาดจุดแดง
+    if (typeof highlightRoom === 'function') {
+        highlightRoom(targetPixelX, targetPixelY);
     }
+}
 
-    function initMap() {
-        const minScale = getMinScale();
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentLocationId = urlParams.get('loc_id');
+    async function initMap() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentLocationId = urlParams.get('loc_id');
 
-        if (currentLocationId) {
-            const locationData = mockData.find(item => item.NodeID === currentLocationId);
+    if (currentLocationId) {
+        try {
+            const response = await fetch('graph.json');
+            if (!response.ok) throw new Error("หาไฟล์ไม่เจอ");
+            
+            const data = await response.json();
+
+            // ค้นหาห้องจากในไฟล์ JSON
+            const locationData = data.nodes.find(node => node.id === currentLocationId);
+
             if (locationData) {
-                if (locationData.Floor !== document.querySelector('.floor-btn.active').getAttribute('data-floor')) {
-                    document.querySelector(`.floor-btn[data-floor="${locationData.Floor}"]`).click();
-                    return; 
+                const activeFloorBtn = document.querySelector('.floor-btn.active');
+                const currentFloorOnUI = activeFloorBtn ? activeFloorBtn.getAttribute('data-floor') : '1';
+
+                // สลับชั้นถ้ายืนอยู่คนละชั้น
+                if (String(locationData.floor) !== currentFloorOnUI) {
+                    const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${locationData.floor}"]`);
+                    if (targetFloorBtn) {
+                        targetFloorBtn.click();
+                        setTimeout(() => {
+                            setInitialLocation(locationData.x, locationData.y, 2.5);
+                        }, 500);
+                    }
+                } else {
+                    setInitialLocation(locationData.x, locationData.y, 2.5);
                 }
-                setInitialLocation(parseFloat(locationData.X), parseFloat(locationData.Y), Math.max(minScale, 2.5));
             } else {
-                setInitialLocation(50, 50, Math.max(minScale, 1.5));
+                console.error("ไม่พบห้องนี้", currentLocationId);
             }
-        } else {
-            setInitialLocation(46.3, 24.5, Math.max(minScale, 1.8));
+        } catch (error) {
+            console.error("เกิดข้อผิดพลาด:", error);
         }
+    } else {
+        // ถ้าเปิดเว็บมาเฉยๆให้โชว์จุดเริ่มต้นตรงนี้
+        setTimeout(() => {
+            setInitialLocation(193, 175, 2.5); // เปลี่ยน x, y เป็นจุดโถงชั้น 1
+        }, 500);
     }
+}
 
     // ==========================================
     // UI ควบคุมต่างๆ (ปุ่มเปลี่ยนชั้น, ภาษา, ค้นหา)
@@ -319,20 +307,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function highlightRoom(x, y) {
-        removeMarker();
-        const marker = document.createElement('div');
-        marker.id = 'marker';
-        marker.style.position = 'absolute';
-        marker.style.top = y + '%';
-        marker.style.left = x + '%';
-        marker.style.width = '15px';
-        marker.style.height = '15px';
-        marker.style.background = 'red';
-        marker.style.borderRadius = '50%';
-        marker.style.transform = `translate(-50%, -50%) scale(${1 / currentScale})`;
-        
-        document.getElementById('mapWrapper').appendChild(marker); 
-    }
+    removeMarker();
+    const marker = document.createElement('div');
+    marker.id = 'marker';
+    marker.style.position = 'absolute';
+    
+    // ใช้เป็น px แทน
+    marker.style.top = y + 'px';
+    marker.style.left = x + 'px';
+    
+    marker.style.width = '15px';
+    marker.style.height = '15px';
+    marker.style.background = 'red';
+    marker.style.borderRadius = '50%';
+    marker.style.transform = `translate(-50%, -50%) scale(${1 / currentScale})`;
+    
+    document.getElementById('mapWrapper').appendChild(marker); 
+}
 
     function removeMarker() {
         const old = document.getElementById('marker');
@@ -351,8 +342,12 @@ document.addEventListener('DOMContentLoaded', function () {
         searchTags.style.display = 'flex';
         setTimeout(() => sheetContent.innerHTML = '', 300);
     }
-});
 
-window.addEventListener('load', () => {
-    initMap();
+    let isMapLoaded = false;
+    window.addEventListener('load', () => {
+        if (!isMapLoaded) {
+            isMapLoaded = true;
+            initMap(); // คราวนี้มันจะมองเห็น initMap แล้ว!
+        }
+    });
 });
