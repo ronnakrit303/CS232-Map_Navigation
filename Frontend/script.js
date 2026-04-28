@@ -1,9 +1,41 @@
-const mockData = [
-  { SearchTerm: "LC3-101", Detail: "ROOM", NodeID: "LC3_101", RoomNumber: "LC3-101", RoomName: "Lecture Room", Floor: "1", X: "46.3", Y: "24.5" },
-  { SearchTerm: "LC3-102", Detail: "ROOM", NodeID: "LC3_102", RoomNumber: "LC3-102", RoomName: "Lecture Room", Floor: "1", X: "44.4", Y: "11.6" },
-  { SearchTerm: "CS101 Sec 1", Detail: "COURSE", NodeID: "LC3_122", RoomNumber: "LC3-122", RoomName: "Lecture Room", Floor: "1", X: "32.2", Y: "54.3" },
-  { SearchTerm: "Science Faculty Townhall", Detail: "EVENT", NodeID: "LC3_135/1", RoomNumber: "LC3-135/1", RoomName: "Event Room", Floor: "1", X: "40", Y: "50" }
-];
+async function initMap() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentLocationId = urlParams.get('loc_id');
+
+    if (currentLocationId) {
+        try {
+            const response = await fetch('graph.json');
+            if (!response.ok) throw new Error("หาไฟล์ไม่เจอ");
+            
+            const data = await response.json();
+
+            // ค้นหาห้องจากในไฟล์ JSON
+            const locationData = data.nodes.find(node => node.id === currentLocationId);
+
+            if (locationData) {
+                const activeFloorBtn = document.querySelector('.floor-btn.active');
+                const currentFloorOnUI = activeFloorBtn ? activeFloorBtn.getAttribute('data-floor') : '1';
+
+                // สลับชั้นถ้ายืนอยู่คนละชั้น
+                if (String(locationData.floor) !== currentFloorOnUI) {
+                    const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${locationData.floor}"]`);
+                    if (targetFloorBtn) {
+                        targetFloorBtn.click();
+                        setTimeout(() => {
+                            setInitialLocation(locationData.x, locationData.y, 2.5);
+                        }, 500);
+                    }
+                } else {
+                    setInitialLocation(locationData.x, locationData.y, 2.5);
+                }
+            } else {
+                console.error("ไม่พบห้องนี้", currentLocationId);
+            }
+        } catch (error) {
+            console.error("เกิดข้อผิดพลาด:", error);
+        }
+    }
+}
 
 function debounce(func, delay) {
     let timeout;
