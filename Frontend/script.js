@@ -174,30 +174,30 @@ document.addEventListener('DOMContentLoaded', function () {
         updateMapTransform();
     }, { passive: false });
 
-// ==========================================
-// ล็อคเป้าหมายเริ่มต้น (เปลี่ยนมารับค่า Pixel จริงจาก graph.json)
-// ==========================================
-function setInitialLocation(x, y, startZoom) {
-    currentScale = startZoom;
-    
-    // รับค่าพิกัดมาตรงๆ ไม่ต้องเอาไปหาร 100 แล้ว
-    const targetPixelX = parseFloat(x);
-    const targetPixelY = parseFloat(y);
-    
-    // คำนวณให้จุดเป้าหมายอยู่กึ่งกลางหน้าจอ
-    panX = (mapContainer.clientWidth / 2) - (targetPixelX * currentScale);
-    panY = (mapContainer.clientHeight / 2) - (targetPixelY * currentScale);
-    
-    updateMapTransform();
-    
-    // แจ้งเตือนดูว่าพิกัดถูกต้องไหม (ถ้าเทสผ่านแล้ว ลบบรรทัด log นี้ทิ้งได้ครับ)
-    console.log("เลื่อนแผนที่ไปที่ Pixel X:", targetPixelX, " Y:", targetPixelY);
-    
-    // ส่งพิกัดไปให้ฟังก์ชันวาดจุดแดง
-    if (typeof highlightRoom === 'function') {
-        highlightRoom(targetPixelX, targetPixelY);
+    // ==========================================
+    // ล็อคเป้าหมายเริ่มต้น (เปลี่ยนมารับค่า Pixel จริงจาก graph.json)
+    // ==========================================
+    function setInitialLocation(x, y, startZoom) {
+        currentScale = startZoom;
+        
+        // รับค่าพิกัดมาตรงๆ ไม่ต้องเอาไปหาร 100 แล้ว
+        const targetPixelX = parseFloat(x);
+        const targetPixelY = parseFloat(y);
+        
+        // คำนวณให้จุดเป้าหมายอยู่กึ่งกลางหน้าจอ
+        panX = (mapContainer.clientWidth / 2) - (targetPixelX * currentScale);
+        panY = (mapContainer.clientHeight / 2) - (targetPixelY * currentScale);
+        
+        updateMapTransform();
+        
+        // แจ้งเตือนดูว่าพิกัดถูกต้องไหม (ถ้าเทสผ่านแล้ว ลบบรรทัด log นี้ทิ้งได้ครับ)
+        console.log("เลื่อนแผนที่ไปที่ Pixel X:", targetPixelX, " Y:", targetPixelY);
+        
+        // ส่งพิกัดไปให้ฟังก์ชันวาดจุดแดง
+        if (typeof highlightRoom === 'function') {
+            highlightRoom(targetPixelX, targetPixelY);
+        }
     }
-}
 
     async function initMap() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -205,7 +205,7 @@ function setInitialLocation(x, y, startZoom) {
 
     if (currentLocationId) {
         try {
-            const response = await fetch('graph.json');
+            const response = await fetch('../Database/graph.json');
             if (!response.ok) throw new Error("หาไฟล์ไม่เจอ");
             
             const data = await response.json();
@@ -217,17 +217,27 @@ function setInitialLocation(x, y, startZoom) {
                 const activeFloorBtn = document.querySelector('.floor-btn.active');
                 const currentFloorOnUI = activeFloorBtn ? activeFloorBtn.getAttribute('data-floor') : '1';
 
+                // วางหมุดเมื่อรูปพร้อม
+                    const placeMarkerWhenReady = () => {
+                        if (mapImage.complete && mapImage.naturalWidth > 0) {
+                            setInitialLocation(locationData.x, locationData.y, 2.5);
+                        } else {
+                            mapImage.onload = () => {
+                                setInitialLocation(locationData.x, locationData.y, 2.5);
+                                mapImage.onload = null; // ป้องกันลูป
+                            };
+                        }
+                    };
+
                 // สลับชั้นถ้ายืนอยู่คนละชั้น
                 if (String(locationData.floor) !== currentFloorOnUI) {
                     const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${locationData.floor}"]`);
                     if (targetFloorBtn) {
                         targetFloorBtn.click();
-                        setTimeout(() => {
-                            setInitialLocation(locationData.x, locationData.y, 2.5);
-                        }, 500);
+                        placeMarkerWhenReady();
                     }
                 } else {
-                    setInitialLocation(locationData.x, locationData.y, 2.5);
+                    placeMarkerWhenReady();
                 }
             } else {
                 console.error("ไม่พบห้องนี้", currentLocationId);
@@ -237,11 +247,10 @@ function setInitialLocation(x, y, startZoom) {
         }
     } else {
         // ถ้าเปิดเว็บมาเฉยๆให้โชว์จุดเริ่มต้นตรงนี้
-        setTimeout(() => {
-            setInitialLocation(193, 175, 2.5); // เปลี่ยน x, y เป็นจุดโถงชั้น 1
-        }, 500);
+        if (mapImage.complete) setInitialLocation(193, 175, 1.8);
+            else mapImage.onload = () => setInitialLocation(193, 175, 1.8);
+     }
     }
-}
 
     // ==========================================
     // UI ควบคุมต่างๆ (ปุ่มเปลี่ยนชั้น, ภาษา, ค้นหา)
@@ -323,7 +332,7 @@ function setInitialLocation(x, y, startZoom) {
     marker.style.transform = `translate(-50%, -50%) scale(${1 / currentScale})`;
     
     document.getElementById('mapWrapper').appendChild(marker); 
-}
+    }   
 
     function removeMarker() {
         const old = document.getElementById('marker');
@@ -349,5 +358,5 @@ function setInitialLocation(x, y, startZoom) {
             isMapLoaded = true;
             initMap(); // คราวนี้มันจะมองเห็น initMap แล้ว!
         }
-    });
+    })
 });
