@@ -34,6 +34,11 @@ async function initMap() {
         } catch (error) {
             console.error("เกิดข้อผิดพลาด:", error);
         }
+    } else {
+        // ถ้าเปิดเว็บมาเฉยๆให้โชว์จุดเริ่มต้นตรงนี้
+        setTimeout(() => {
+            setInitialLocation(193, 175, 2.5); // เปลี่ยน x, y เป็นจุดโถงชั้น 1
+        }, 500);
     }
 }
 
@@ -250,9 +255,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    if (mapImage.complete) initMap();
-    else mapImage.onload = initMap;
-
     // ==========================================
     // UI ควบคุมต่างๆ (ปุ่มเปลี่ยนชั้น, ภาษา, ค้นหา)
     // ==========================================
@@ -349,4 +351,8 @@ document.addEventListener('DOMContentLoaded', function () {
         searchTags.style.display = 'flex';
         setTimeout(() => sheetContent.innerHTML = '', 300);
     }
+});
+
+window.addEventListener('load', () => {
+    initMap();
 });
