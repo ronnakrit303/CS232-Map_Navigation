@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LC3-Navigator</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/search-addon.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
@@ -20,8 +21,6 @@
         </div>
         <button id="langToggle" class="lang-btn">TH</button>
     </nav>
-
-
 
     <div class="map-container" id="mapContainer">
         <div id="mapWrapper">
@@ -38,8 +37,9 @@
         <button class="zoom-btn" id="zoomIn"><i class="fas fa-plus"></i></button>
         <button class="zoom-btn" id="zoomOut"><i class="fas fa-minus"></i></button>
     </div>
+
     <div class="search-overlay" id="search-panel">
-        <div class="search-box id="single-search-box" style="margin-bottom: 0; display: flex; align-items: center;">
+        <div class="search-box" id="single-search-box" style="margin-bottom: 0; display: flex; align-items: center;">
             <i class="fas fa-book-open text-gray"></i>
             <input type="text" id="searchInput" placeholder="ค้นหาห้องเรียน">
             <i class="fas fa-times text-gray" id="clearSearch" style="display: none; cursor: pointer;"></i>
@@ -84,7 +84,9 @@
         </div>
         <div id="sheetContent" class="sheet-content"></div>
     </div>
+
     <script src="script.js"></script>
+    <script src="js/task1-room-search-addon.js"></script>
 </body>
 
 </html>
