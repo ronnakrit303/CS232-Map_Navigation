@@ -288,6 +288,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }, 200));
 
+    //เปิดปิด search
+    const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+    const searchPanelContent = document.getElementById('search-panel-content');
+
+    // สั่งเปิด-ปิด เมื่อกดลูกศร
+    toggleSearchBtn.addEventListener('click', () => {
+        searchPanelContent.classList.toggle('collapsed');
+        toggleSearchBtn.classList.toggle('rotated');
+    });
+
     function showSearchResults(results) {
         if (!bottomSheet || !sheetContent) return;
         let html = `<div class="search-header">ผลลัพธ์</div>`;

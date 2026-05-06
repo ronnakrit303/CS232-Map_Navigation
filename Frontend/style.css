@@ -75,6 +75,27 @@ body {
     z-index: 10;
 }
 
+/* ควบคุมส่วนที่พับเก็บได้ */
+.collapsible-content {
+    max-height: 500px; /* ความสูงจำลองตอนกางสุด */
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin-top 0.3s ease-out;
+    opacity: 1;
+}
+
+/* คลาสตอนถูกพับ */
+.collapsible-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    pointer-events: none; /* ป้องกันการกดโดนปุ่มตอนพับ */
+}
+
+/* หมุนลูกศรลงตอนพับ */
+.fa-chevron-up.rotated {
+    transform: rotate(180deg);
+}
+
 .search-box {
     display: flex;
     align-items: center;

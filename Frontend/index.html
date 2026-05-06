@@ -38,37 +38,43 @@
         <button class="zoom-btn" id="zoomIn"><i class="fas fa-plus"></i></button>
         <button class="zoom-btn" id="zoomOut"><i class="fas fa-minus"></i></button>
     </div>
-    <div class="search-overlay">
-        <div class="search-box">
+    <div class="search-overlay" id="search-panel">
+        <div class="search-box id="single-search-box" style="margin-bottom: 0; display: flex; align-items: center;">
             <i class="fas fa-book-open text-gray"></i>
             <input type="text" id="searchInput" placeholder="ค้นหาห้องเรียน">
             <i class="fas fa-times text-gray" id="clearSearch" style="display: none; cursor: pointer;"></i>
-        </div>
-        <div class="search-tags" id="searchTags" style="margin-bottom: 15px;">
-            <span class="tag-label">แนะนำ:</span>
-            <button class="tag-btn"><i class="fas fa-restroom"></i> ห้องน้ำ</button>
-            <button class="tag-btn"><i class="fas fa-stairs"></i> บันได</button>
+
+            <div class="vertical-divider" style="width: 1px; height: 16px; background: #ddd; margin: 0 8px;"></div>
+            <i class="fas fa-chevron-up text-gray" id="toggleSearchBtn" style="cursor: pointer; padding: 0 5px; transition: transform 0.3s;"></i>
         </div>
 
-        <!-- ── Search Panel (US2) ── -->
-        <div class="input-group" style="border-top: 1px solid #eee; padding-top: 15px;">
-            <div class="input-wrapper" style="margin-bottom: 10px;">
-                <div class="search-box" style="margin-bottom: 0;">
-                    <span class="tiny-label" style="font-size: 12px; font-weight: bold; margin-right: 10px; color: #888;">FROM:</span>
-                    <input type="text" id="start-query" placeholder="101" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
-                </div>
-                <div class="suggestion-list" id="start-suggestions"></div>
+        <div id="search-panel-content" class="collapsible-content">
+            <div class="search-tags" id="searchTags" style="margin-bottom: 0.5rem; margin-top: 0.5rem;">
+                <span class="tag-label">แนะนำ:</span>
+                <button class="tag-btn"><i class="fas fa-restroom"></i> ห้องน้ำ</button>
+                <button class="tag-btn"><i class="fas fa-stairs"></i> บันได</button>
             </div>
 
-            <div class="input-wrapper" style="margin-bottom: 15px;">
-                <div class="search-box" style="margin-bottom: 0;">
-                    <span class="tiny-label" style="font-size: 12px; font-weight: bold; margin-right: 10px; color: #888;">TO:</span>
-                    <input type="text" id="goal-query" placeholder="204" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
+            <!-- ── Search Panel (US2) ── -->
+            <div class="input-group" style="border-top: 1px solid #eee; padding-top: 15px;">
+                <div class="input-wrapper" style="margin-bottom: 10px;">
+                    <div class="search-box" style="margin-bottom: 0;">
+                        <span class="tiny-label" style="font-size: 12px; font-weight: bold; margin-right: 10px; color: #888;">FROM:</span>
+                        <input type="text" id="start-query" placeholder="101" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
+                    </div>
+                    <div class="suggestion-list" id="start-suggestions"></div>
                 </div>
-                <div class="suggestion-list" id="goal-suggestions"></div>
-            </div>
 
-            <button id="btn-navigate" onclick="navigateUser(event)" style="width: 100%; padding: 10px; background: #1a4d8c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Navigate</button>
+                <div class="input-wrapper" style="margin-bottom: 15px;">
+                    <div class="search-box" style="margin-bottom: 0;">
+                        <span class="tiny-label" style="font-size: 12px; font-weight: bold; margin-right: 10px; color: #888;">TO:</span>
+                        <input type="text" id="goal-query" placeholder="204" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
+                    </div>
+                    <div class="suggestion-list" id="goal-suggestions"></div>
+                </div>
+
+                <button id="btn-navigate" onclick="navigateUser(event)" style="width: 100%; padding: 10px; background: #1a4d8c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Navigate</button>
+            </div>
         </div>
     </div>
 
