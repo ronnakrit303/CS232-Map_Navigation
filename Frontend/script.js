@@ -217,6 +217,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 const activeFloorBtn = document.querySelector('.floor-btn.active');
                 const currentFloorOnUI = activeFloorBtn ? activeFloorBtn.getAttribute('data-floor') : '1';
 
+                // Autofill ช่อง From
+                const startInput = document.getElementById('start-query');
+                if (startInput) {
+                    let displayFrom = currentLocationId.replace('LC3_', '').replace('F2_', '');
+
+                    startInput.value = displayFrom; 
+                }
+
                 // วางหมุดเมื่อรูปพร้อม
                     const placeMarkerWhenReady = () => {
                         if (mapImage.complete && mapImage.naturalWidth > 0) {
