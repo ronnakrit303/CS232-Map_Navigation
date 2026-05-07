@@ -23,7 +23,7 @@ sys.stderr.reconfigure(encoding='utf-8')
 # CONFIGURATION
 # =========================================================================
 AWS_REGION = "us-east-1"
-TABLE_NAME = "LocationData"
+TABLE_NAME = os.environ.get("DDB_TABLE", "LC3_CourseMapping_staging")
 
 # Node types that should be indexed as searchable POIs in DynamoDB
 SEEDABLE_TYPES = {"room", "stairs", "toilet", "elevator", "cafe", "lab", "office", "facility"}
