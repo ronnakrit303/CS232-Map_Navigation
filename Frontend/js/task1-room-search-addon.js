@@ -6,7 +6,7 @@
     'use strict';
 
     const GRAPH_URL = 'graph.json';
-    const API_BASE_URL = window.CS232_API_BASE || 'http://127.0.0.1:8000';
+    const API_BASE_URL = String(window.CS232_API_BASE || '').trim();
     const state = {
         graph: null,
         nodes: [],
@@ -150,6 +150,9 @@
     }
 
     function apiUrl(path) {
+        if (!API_BASE_URL) {
+            throw new Error('ยังไม่ได้ตั้งค่า backend API URL ใน Frontend/config.js');
+        }
         return `${API_BASE_URL.replace(/\/$/, '')}${path}`;
     }
 
