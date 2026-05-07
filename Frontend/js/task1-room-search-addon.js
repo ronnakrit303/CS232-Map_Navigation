@@ -446,7 +446,8 @@
     }
 
     async function requestRoute(startNode, goalNode) {
-        const pathfindingUrl = apiUrl(`/pathfinding?start=${encodeURIComponent(startNode.id)}&end=${encodeURIComponent(goalNode.id)}`);
+        const endpoint = window.CS232_ROUTE_ENDPOINT || '/route';
+        const pathfindingUrl = apiUrl(`${endpoint}?start=${encodeURIComponent(startNode.id)}&end=${encodeURIComponent(goalNode.id)}`);
         const pathfindingData = await fetchJson(pathfindingUrl);
 
         let directionData;
