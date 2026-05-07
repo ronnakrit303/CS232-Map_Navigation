@@ -363,18 +363,32 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     window.selectRoom = function (roomName, x, y) {
+        
         searchInput.value = roomName;
-
-        const goalInput = document.getElementById('goal-query');
-        if (goalInput) goalInput.value = roomName;
-
+        
+        
         setInitialLocation(x, y, Math.max(getMinScale(), 2.8));
 
+        
+        const goalInput = document.getElementById('goal-query');
+        if (goalInput) {
+            goalInput.value = roomName; 
+        }
+
+       
+        const startInput = document.getElementById('start-query');
+        if (startInput) {
+            setTimeout(() => {
+                startInput.focus();
+            }, 300);
+        }
+
         sheetContent.innerHTML = `
-            <div style="text-align:center;">
-                <h3>ไป ${roomName}</h3>
-                <p>กำลังนำทาง...</p>
+            <div style="text-align:center; padding: 20px;">
+                <h3 style="color: #1a4d8c;"><i class="fas fa-map-pin"></i> จุดหมาย: ห้อง ${roomName}</h3>
+                <p style="color: #666; margin-top: 10px;">กรุณาระบุ <b>FROM</b> เพื่อเริ่มค้นหาเส้นทาง</p>
             </div>`;
+        bottomSheet.classList.add('show');
     }
 
     function highlightRoom(x, y) {
