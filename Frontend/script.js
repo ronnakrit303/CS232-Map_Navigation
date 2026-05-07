@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bottomSheet.classList.add('show');
 
         try {
-            let url = `https://s5lchevir3.execute-api.us-east-1.amazonaws.com/staging/?q=${encodeURIComponent(goalInput)}`;
+            let url = `http://localhost:8000/?q=${encodeURIComponent(goalInput)}`;
             
             if (startInput) {
                 url += `&start=${encodeURIComponent('LC3_entry_' + startInput)}`; 
