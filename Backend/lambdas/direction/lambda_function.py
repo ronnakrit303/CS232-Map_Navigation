@@ -7,6 +7,8 @@ DEFAULT_GRAPH_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..", "Database", "graph.json")
 )
 GRAPH_PATH = os.environ.get("GRAPH_PATH", DEFAULT_GRAPH_PATH)
+GRAPH_S3_BUCKET = os.environ.get("GRAPH_S3_BUCKET") or os.environ.get("S3_BUCKET")
+GRAPH_S3_KEY = os.environ.get("GRAPH_S3_KEY") or os.environ.get("S3_KEY") or "graph.json"
 TURN_THRESHOLD_DEGREES = 30
 
 _GRAPH_CACHE = None
@@ -24,12 +26,24 @@ def response(status_code, body):
     }
 
 
+def load_graph_from_s3(bucket, key):
+    # ใช้ตอน deploy บน AWS Lambda โดยโหลด graph.json จาก S3
+    import boto3
+
+    s3 = boto3.client("s3")
+    result = s3.get_object(Bucket=bucket, Key=key)
+    return json.loads(result["Body"].read().decode("utf-8"))
+
+
 def load_graph():
-    # โหลด graph จากไฟล์จริง และ cache ไว้เพื่อลดการอ่านไฟล์ซ้ำ
+    # โหลด graph จาก S3 เมื่ออยู่บน AWS หรืออ่านไฟล์จริงเมื่อรัน local และ cache ไว้เพื่อลดการโหลดซ้ำ
     global _GRAPH_CACHE
     if _GRAPH_CACHE is None:
-        with open(GRAPH_PATH, "r", encoding="utf-8") as graph_file:
-            _GRAPH_CACHE = json.load(graph_file)
+        if GRAPH_S3_BUCKET:
+            _GRAPH_CACHE = load_graph_from_s3(GRAPH_S3_BUCKET, GRAPH_S3_KEY)
+        else:
+            with open(GRAPH_PATH, "r", encoding="utf-8") as graph_file:
+                _GRAPH_CACHE = json.load(graph_file)
     return _GRAPH_CACHE
 
 
