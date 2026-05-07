@@ -7,136 +7,163 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR = os.path.dirname(CURRENT_DIR)
 sys.path.append(BACKEND_DIR)
 
-# Import Services จริงเข้ามาใช้งาน
-from lambdas.search import lambda_function as search_lambda
 from lambdas.pathfinding import lambda_function as pathfinding_lambda
 from lambdas.direction import lambda_function as direction_lambda
 
+
+def json_response(status_code, body):
+    return {
+        "statusCode": status_code,
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json; charset=utf-8",
+        },
+        "body": json.dumps(body, ensure_ascii=False),
+    }
+
+
 def invoke_search_service(query):
-    print(f"[Gateway] 🔍 Searching for: {query}")
-    mock_event = {'queryStringParameters': {'q': query}}
+    # Import search เฉพาะตอนใช้งานจริง เพราะ search lambda ต้องใช้ boto3/DynamoDB
+    from lambdas.search import lambda_function as search_lambda
+
+    print(f"[Gateway] Searching for: {query}")
+    mock_event = {"queryStringParameters": {"q": query}}
     response = search_lambda.lambda_handler(mock_event, None)
-    
-    if response.get('statusCode') == 200:
-        body = json.loads(response['body'])
-        if body.get('status') == 'success':
-            return {"target_node": body['target_node'], "room_name": body['room_name']}
+
+    if response.get("statusCode") == 200:
+        body = json.loads(response["body"])
+        if body.get("status") == "success":
+            return {"target_node": body["target_node"], "room_name": body["room_name"]}
     return None
 
+
+def invoke_pathfinding_lambda_event(event):
+    return pathfinding_lambda.lambda_handler(event, None)
+
+
 def invoke_pathfinding_service(start_node, end_node):
-    print(f"[Gateway] 🗺️ Pathfinding: {start_node} -> {end_node}")
-    mock_event = {'queryStringParameters': {'start': start_node, 'end': end_node}}
-    response = pathfinding_lambda.lambda_handler(mock_event, None)
-    
-    if response.get('statusCode') == 200:
-        body = json.loads(response['body'])
-        if body.get('status') == 'success':
-            return body['path']
+    print(f"[Gateway] Pathfinding: {start_node} -> {end_node}")
+    mock_event = {"queryStringParameters": {"start": start_node, "end": end_node}}
+    response = invoke_pathfinding_lambda_event(mock_event)
+
+    if response.get("statusCode") == 200:
+        body = json.loads(response["body"])
+        if body.get("status") == "success":
+            return body["path"]
     return []
 
+
+def invoke_direction_lambda_event(event):
+    return direction_lambda.lambda_handler(event, None)
+
+
 def invoke_direction_service(path_array):
-    print(f"[Gateway] 🧭 Generating directions for {len(path_array)} nodes")
+    print(f"[Gateway] Generating directions for {len(path_array)} nodes")
     if not path_array or len(path_array) < 2:
         return []
-        
-    mock_event = {'body': json.dumps({'path': path_array})}
-    response = direction_lambda.lambda_handler(mock_event, None)
-    
-    if response.get('statusCode') == 200:
-        body = json.loads(response['body'])
-        if body.get('status') == 'success':
-            return body['instructions']
+
+    mock_event = {"body": json.dumps({"path": path_array})}
+    response = invoke_direction_lambda_event(mock_event)
+
+    if response.get("statusCode") == 200:
+        body = json.loads(response["body"])
+        if body.get("status") == "success":
+            return body["instructions"]
     return []
+
 
 def lambda_handler(event, context):
     try:
-        query_params = event.get('queryStringParameters') or {}
-     
-        start_node = query_params.get('start', 'LC3_entry_101') 
-        search_query = query_params.get('q', '')
+        query_params = event.get("queryStringParameters") or {}
+
+        start_node = query_params.get("start", "LC3_entry_101")
+        search_query = query_params.get("q", "")
 
         if not search_query:
-            return {
-                'statusCode': 400,
-                'headers': {'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps({'error': 'Missing required parameter "q"'})
-            }
+            return json_response(400, {"error": 'Missing required parameter "q"'})
 
-      
         search_result = invoke_search_service(search_query)
         if not search_result:
-            return {
-                'statusCode': 200,
-                'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json; charset=utf-8'},
-                'body': json.dumps({"status": "fail", "message": f"ไม่พบข้อมูลสำหรับ '{search_query}'"}, ensure_ascii=False)
-            }
+            return json_response(
+                200,
+                {"status": "fail", "message": f"ไม่พบข้อมูลสำหรับ '{search_query}'"},
+            )
 
-        target_node = search_result.get('target_node')
-
-        # 2. Pathfinding Service
+        target_node = search_result.get("target_node")
         path_array = invoke_pathfinding_service(start_node, target_node)
         if not path_array:
-            return {
-                'statusCode': 200,
-                'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json; charset=utf-8'},
-                'body': json.dumps({"status": "fail", "message": f"ไม่สามารถค้นหาเส้นทางไปยัง '{search_query}' ได้"}, ensure_ascii=False)
-            }
+            return json_response(
+                200,
+                {"status": "fail", "message": f"ไม่สามารถค้นหาเส้นทางไปยัง '{search_query}' ได้"},
+            )
 
-        # 3. Direction Service
         instructions = invoke_direction_service(path_array)
 
-        response_body = {
-            "status": "success",
-            "search_result": {
-                "keyword": search_query,
-                "target": search_result.get('room_name')
+        return json_response(
+            200,
+            {
+                "status": "success",
+                "search_result": {
+                    "keyword": search_query,
+                    "target": search_result.get("room_name"),
+                },
+                "route": path_array,
+                "instructions": instructions,
             },
-            "route": path_array,
-            "instructions": instructions
-        }
+        )
 
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'application/json; charset=utf-8'
-            },
-            'body': json.dumps(response_body, ensure_ascii=False)
-        }
+    except Exception as error:
+        print(f"[Gateway] Error: {error}")
+        return json_response(500, {"error": "Internal Server Error", "details": str(error)})
 
-    except Exception as e:
-        print(f"[Gateway] ❌ Error: {e}")
-        return {
-            'statusCode': 500,
-            'headers': {'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Internal Server Error', 'details': str(e)})
-        }
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from http.server import BaseHTTPRequestHandler, HTTPServer
-    from urllib.parse import urlparse, parse_qs
+    from urllib.parse import parse_qs, urlparse
 
     class LocalGatewayHandler(BaseHTTPRequestHandler):
+        def send_lambda_response(self, response):
+            self.send_response(response.get("statusCode", 200))
+            for key, value in response.get("headers", {}).items():
+                self.send_header(key, value)
+            self.end_headers()
+            self.wfile.write(response.get("body", "").encode("utf-8"))
+
         def do_OPTIONS(self):
             self.send_response(200, "ok")
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
             self.end_headers()
 
         def do_GET(self):
             parsed_path = urlparse(self.path)
-            qs = {k: v[0] for k, v in parse_qs(parsed_path.query).items()}
-            
-            mock_event = {'queryStringParameters': qs}
-            response = lambda_handler(mock_event, None)
-            
-            self.send_response(response.get('statusCode', 200))
-            for key, value in response.get('headers', {}).items():
-                self.send_header(key, value)
-            self.end_headers()
-            self.wfile.write(response['body'].encode('utf-8'))
+            qs = {key: value[0] for key, value in parse_qs(parsed_path.query).items()}
+
+            if parsed_path.path in ("/pathfinding", "/api/pathfinding"):
+                response = invoke_pathfinding_lambda_event({"queryStringParameters": qs})
+            elif parsed_path.path in ("/direction", "/directions", "/api/direction", "/api/directions"):
+                path = [node for node in qs.get("path", "").split(",") if node]
+                response = invoke_direction_lambda_event({"body": json.dumps({"path": path})})
+            else:
+                response = lambda_handler({"queryStringParameters": qs}, None)
+
+            self.send_lambda_response(response)
+
+        def do_POST(self):
+            parsed_path = urlparse(self.path)
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else "{}"
+
+            if parsed_path.path in ("/pathfinding", "/api/pathfinding"):
+                response = invoke_pathfinding_lambda_event({"body": raw_body})
+            elif parsed_path.path in ("/direction", "/directions", "/api/direction", "/api/directions"):
+                response = invoke_direction_lambda_event({"body": raw_body})
+            else:
+                response = json_response(404, {"status": "fail", "error": "endpoint not found"})
+
+            self.send_lambda_response(response)
 
     port = 8000
-    print(f"🚀 Integration API Server running on http://localhost:{port}")
-    HTTPServer(('', port), LocalGatewayHandler).serve_forever()
+    print(f"Integration API Server running on http://localhost:{port}")
+    HTTPServer(("", port), LocalGatewayHandler).serve_forever()

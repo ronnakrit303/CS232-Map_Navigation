@@ -1,17 +1,17 @@
 /*
  * Task4 / US1 Add-on: Room Search UI
- * - Does not replace the existing script.js.
- * - Adds data and helper behavior for room search, suggestions, FROM/TO, and Navigate.
- * - Requires Frontend/graph.json and this file to be loaded after script.js.
+ * Adds room search, FROM/TO autocomplete, backend pathfinding, and directions.
  */
 (function () {
     'use strict';
 
     const GRAPH_URL = 'graph.json';
+    const API_BASE_URL = window.CS232_API_BASE || 'http://127.0.0.1:8000';
     const state = {
         graph: null,
         nodes: [],
-        searchItems: []
+        searchItems: [],
+        currentRoutePath: []
     };
 
     window.__cs232SearchAddon = window.__cs232SearchAddon || {};
@@ -35,7 +35,7 @@
             category: 'room',
             SearchTerm: `${title} ${label} ${floor}`.trim(),
             RoomNumber: room,
-            RoomName: `${label}${floor ? ' • ' + floor : ''}`,
+            RoomName: `${label}${floor ? ' · ' + floor : ''}`,
             node_id: node.id,
             X: Number(node.x),
             Y: Number(node.y),
@@ -149,20 +149,179 @@
         return findNodeByIdOrName(input.value);
     }
 
-    window.navigateUser = function navigateUser(event) {
+    function apiUrl(path) {
+        return `${API_BASE_URL.replace(/\/$/, '')}${path}`;
+    }
+
+    async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (!response.ok || data.status === 'fail') {
+            throw new Error(data.error || data.message || 'Navigation request failed');
+        }
+        return data;
+    }
+
+    function setNavigateButtonLoading(isLoading) {
+        const button = document.getElementById('btn-navigate');
+        if (!button) return;
+        button.disabled = isLoading;
+        button.textContent = isLoading ? 'Finding route...' : 'Navigate';
+    }
+
+    function nodeTitle(nodeId) {
+        const node = findNodeByIdOrName(nodeId);
+        return node ? displayNodeName(node) : nodeId;
+    }
+
+    function activeFloor() {
+        const activeButton = document.querySelector('.floor-btn.active');
+        return activeButton ? String(activeButton.getAttribute('data-floor')) : '1';
+    }
+
+    function clearRouteOverlay() {
+        document.querySelectorAll('.route-path-line, .route-node-marker').forEach(element => element.remove());
+    }
+
+    function drawRouteOnCurrentFloor(path) {
+        clearRouteOverlay();
+        const mapWrapper = document.getElementById('mapWrapper');
+        const mapImage = document.getElementById('mapImage');
+        if (!mapWrapper || !mapImage || !Array.isArray(path) || path.length < 2) return;
+
+        const floor = activeFloor();
+        const routeNodes = path
+            .map(nodeId => findNodeByIdOrName(nodeId))
+            .filter(node => node && String(node.floor) === floor && Number.isFinite(Number(node.x)) && Number.isFinite(Number(node.y)));
+
+        if (routeNodes.length < 2) return;
+
+        const width = mapImage.naturalWidth || mapImage.width || 1200;
+        const height = mapImage.naturalHeight || mapImage.height || 800;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('route-path-line');
+        svg.setAttribute('width', width);
+        svg.setAttribute('height', height);
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', routeNodes.map(node => `${node.x},${node.y}`).join(' '));
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke', '#0066cc');
+        polyline.setAttribute('stroke-width', '6');
+        polyline.setAttribute('stroke-linecap', 'round');
+        polyline.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(polyline);
+        mapWrapper.appendChild(svg);
+
+        [routeNodes[0], routeNodes[routeNodes.length - 1]].forEach((node, index) => {
+            const marker = document.createElement('div');
+            marker.className = `route-node-marker ${index === 0 ? 'route-start-marker' : 'route-end-marker'}`;
+            marker.style.left = `${node.x}px`;
+            marker.style.top = `${node.y}px`;
+            marker.textContent = index === 0 ? 'A' : 'B';
+            mapWrapper.appendChild(marker);
+        });
+    }
+
+    function renderRouteLoading(startNode, goalNode) {
+        const bottomSheet = document.getElementById('bottomSheet');
+        const sheetContent = document.getElementById('sheetContent');
+        if (!bottomSheet || !sheetContent) return;
+
+        sheetContent.innerHTML = `
+            <div class="calc-container">
+                <div class="calc-text">กำลังค้นหาเส้นทาง ${nodeTitle(startNode.id)} to ${nodeTitle(goalNode.id)}</div>
+                <div class="progress-wrapper"><div class="progress-bar" style="width: 70%;"></div></div>
+            </div>
+        `;
+        bottomSheet.classList.add('show');
+    }
+
+    function renderRouteResult(startNode, goalNode, pathfindingData, directionData) {
+        const bottomSheet = document.getElementById('bottomSheet');
+        const sheetContent = document.getElementById('sheetContent');
+        if (!bottomSheet || !sheetContent) return;
+
+        const instructions = directionData.instructions || [];
+        const instructionItems = instructions.map(item => `
+            <li class="instruction-item">
+                <span class="instruction-step">${item.step}</span>
+                <div>
+                    <strong>${item.instruction}</strong>
+                    <small>${item.direction} · ${item.distance} ${item.unit || 'm'}</small>
+                </div>
+            </li>
+        `).join('');
+
+        sheetContent.innerHTML = `
+            <div class="result-header">
+                <div class="route-title">
+                    <i class="fas fa-route"></i>
+                    <span>${nodeTitle(startNode.id)} to ${nodeTitle(goalNode.id)}</span>
+                    <span class="route-dist">${directionData.total_distance || pathfindingData.total_distance} m</span>
+                </div>
+                <div class="route-subtitle">${pathfindingData.path.map(nodeTitle).join(' -> ')}</div>
+            </div>
+            <div class="route-stats">
+                <span>${pathfindingData.path.length} nodes</span>
+                <span>${instructions.length} steps</span>
+            </div>
+            <ol class="instruction-list">${instructionItems}</ol>
+        `;
+        bottomSheet.classList.add('show');
+    }
+
+    function renderRouteError(message) {
+        const bottomSheet = document.getElementById('bottomSheet');
+        const sheetContent = document.getElementById('sheetContent');
+        if (!bottomSheet || !sheetContent) return;
+
+        sheetContent.innerHTML = `
+            <div class="route-error">
+                <strong>หาเส้นทางไม่สำเร็จ</strong>
+                <p>${message}</p>
+            </div>
+        `;
+        bottomSheet.classList.add('show');
+    }
+
+    async function requestRoute(startNode, goalNode) {
+        const pathfindingUrl = apiUrl(`/pathfinding?start=${encodeURIComponent(startNode.id)}&end=${encodeURIComponent(goalNode.id)}`);
+        const pathfindingData = await fetchJson(pathfindingUrl);
+        const directionData = await fetchJson(apiUrl('/direction'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: pathfindingData.path })
+        });
+        return { pathfindingData, directionData };
+    }
+
+    window.navigateUser = async function navigateUser(event) {
         if (event) event.preventDefault();
+        const startInput = document.getElementById('start-query');
         const goalInput = document.getElementById('goal-query');
+        const startNode = resolveInputNode(startInput);
         const targetNode = resolveInputNode(goalInput);
 
-        if (!targetNode) {
-            alert('ไม่พบปลายทาง กรุณาเลือกห้องจากรายการแนะนำ');
+        if (!startNode || !targetNode) {
+            alert('กรุณาเลือกจุดเริ่มต้นและปลายทางจากรายการแนะนำ');
             return;
         }
 
-        // Reuse the existing initMap behavior in script.js by opening the page with loc_id.
-        const url = new URL(window.location.href);
-        url.searchParams.set('loc_id', targetNode.id);
-        window.location.href = url.toString();
+        try {
+            setNavigateButtonLoading(true);
+            renderRouteLoading(startNode, targetNode);
+            const { pathfindingData, directionData } = await requestRoute(startNode, targetNode);
+            state.currentRoutePath = pathfindingData.path;
+            renderRouteResult(startNode, targetNode, pathfindingData, directionData);
+            drawRouteOnCurrentFloor(pathfindingData.path);
+        } catch (error) {
+            console.error('[Task2/US5] Navigation failed:', error);
+            renderRouteError(error.message);
+        } finally {
+            setNavigateButtonLoading(false);
+        }
     };
 
     window.__cs232SearchAddon.findNode = findNodeByIdOrName;
@@ -184,6 +343,9 @@
             rebuildMockData();
             attachFromToAutocomplete();
             attachPanelToggleIfMissing();
+            document.querySelectorAll('.floor-btn').forEach(button => {
+                button.addEventListener('click', () => setTimeout(() => drawRouteOnCurrentFloor(state.currentRoutePath), 50));
+            });
             document.dispatchEvent(new CustomEvent('cs232:room-search-ready'));
         } catch (error) {
             console.error('[Task4/US1] Room search add-on failed:', error);
