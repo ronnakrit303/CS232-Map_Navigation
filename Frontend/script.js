@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // ล็อคเป้าหมายเริ่มต้น (เปลี่ยนมารับค่า Pixel จริงจาก graph.json)
     // ==========================================
-    function setInitialLocation(x, y, startZoom) {
+    function setInitialLocation(x, y, startZoom, shouldHighlight = true) {
         currentScale = startZoom;
 
         // รับค่าพิกัดมาตรงๆ ไม่ต้องเอาไปหาร 100 แล้ว
@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("เลื่อนแผนที่ไปที่ Pixel X:", targetPixelX, " Y:", targetPixelY);
 
         // ส่งพิกัดไปให้ฟังก์ชันวาดจุดแดง
-        if (typeof highlightRoom === 'function') {
+        if (shouldHighlight && typeof highlightRoom === 'function') {
             highlightRoom(targetPixelX, targetPixelY);
         }
     }
@@ -254,9 +254,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error("เกิดข้อผิดพลาด:", error);
             }
         } else {
-            // ถ้าเปิดเว็บมาเฉยๆให้โชว์จุดเริ่มต้นตรงนี้
-            if (mapImage.complete) setInitialLocation(193, 175, 1.8);
-            else mapImage.onload = () => setInitialLocation(193, 175, 1.8);
+            // ถ้าเปิดเว็บมาเฉยๆให้โชว์จุดเริ่มต้นตรงนี้ (แต่ไม่ต้องวาดหมุดแดง)
+            if (mapImage.complete) setInitialLocation(193, 175, 1.8, false);
+            else mapImage.onload = () => setInitialLocation(193, 175, 1.8, false);
         }
     }
 
