@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
             let url = `${String(window.CS232_API_BASE || '').replace(/\/$/, '')}/?q=${encodeURIComponent(goalInput)}`;
             
             if (startInput) {
-                url += `&start=${encodeURIComponent('LC3_entry_' + startInput)}`; 
+                url += `&start=${encodeURIComponent(startInput)}`; 
             }
             
             const response = await fetch(url);
