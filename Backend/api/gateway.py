@@ -16,7 +16,9 @@ def json_response(status_code, body):
         "statusCode": status_code,
         "headers": {
             "Access-Control-Allow-Origin": "*",
-            "Content-Type": "application/json; charset=utf-8",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization",
+            "Content-Type": "application/json",
         },
         "body": json.dumps(body, ensure_ascii=False),
     }
@@ -130,10 +132,12 @@ if __name__ == "__main__":
             self.wfile.write(response.get("body", "").encode("utf-8"))
 
         def do_OPTIONS(self):
-            self.send_response(200, "ok")
+            """Handle CORS preflight requests"""
+            self.send_response(200)
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type,Authorization")
+            self.send_header("Content-Type", "application/json")
             self.end_headers()
 
         def do_GET(self):
@@ -145,6 +149,8 @@ if __name__ == "__main__":
             elif parsed_path.path in ("/direction", "/directions", "/api/direction", "/api/directions"):
                 path = [node for node in qs.get("path", "").split(",") if node]
                 response = invoke_direction_lambda_event({"body": json.dumps({"path": path})})
+            elif parsed_path.path in ("/search", "/api/search"):
+                response = json_response(400, {"error": "Use POST for search"})
             else:
                 response = lambda_handler({"queryStringParameters": qs}, None)
 
@@ -159,6 +165,15 @@ if __name__ == "__main__":
                 response = invoke_pathfinding_lambda_event({"body": raw_body})
             elif parsed_path.path in ("/direction", "/directions", "/api/direction", "/api/directions"):
                 response = invoke_direction_lambda_event({"body": raw_body})
+            elif parsed_path.path in ("/search", "/api/search"):
+                try:
+                    body = json.loads(raw_body)
+                    query = body.get("q", "").strip()
+                    if query_params := urlparse(self.path).query:
+                        query = dict(parse_qs(query_params)).get("q", [query])[0]
+                    response = lambda_handler({"queryStringParameters": {"q": query}}, None)
+                except Exception as e:
+                    response = json_response(400, {"error": str(e)})
             else:
                 response = json_response(404, {"status": "fail", "error": "endpoint not found"})
 
