@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LC3 Graph Config Schema",
+  "description": "Reference schema for Database/graph.json used by LC3 Navigator pathfinding and direction lambdas.",
+  "type": "object",
+  "required": [
+    "building",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "building": {
+      "type": "string",
+      "examples": [
+        "LC3"
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "floor",
+          "x",
+          "y",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "examples": [
+              "LC3_111",
+              "LC3_F2_hallway-1"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "examples": [
+              "111",
+              "hallway-5"
+            ]
+          },
+          "floor": {
+            "type": "number",
+            "examples": [
+              1,
+              2,
+              3
+            ]
+          },
+          "x": {
+            "type": "number",
+            "examples": [
+              83
+            ]
+          },
+          "y": {
+            "type": "number",
+            "examples": [
+              169
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "room",
+              "entrance",
+              "junction",
+              "stairs",
+              "facility",
+              "hallway",
+              "toilet",
+              "elevator",
+              "cafe",
+              "lab",
+              "office"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "examples": [
+              "ห้องบรรยายเรียนรวม"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "type",
+          "distance"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "examples": [
+              "LC3_F2_hallway-1"
+            ]
+          },
+          "to": {
+            "type": "string",
+            "examples": [
+              "LC3_F2_entry-32"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "walk",
+              "stairs",
+              "up",
+              "down"
+            ]
+          },
+          "distance": {
+            "type": "number",
+            "minimum": 0,
+            "examples": [
+              0,
+              6,
+              8
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
