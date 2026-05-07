@@ -13,6 +13,46 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchTags = document.getElementById('searchTags');
     const bottomSheet = document.getElementById('bottomSheet');
     const sheetContent = document.getElementById('sheetContent');
+    const sheetOverlay = document.getElementById('sheetOverlay');
+
+    // Overlay
+    if (sheetOverlay) {
+        sheetOverlay.addEventListener('click', () => {
+            const toggleBtn = document.getElementById('routeToggleBtn'); 
+            const closeBtn = document.querySelector('.route-close-btn');
+            
+            if (toggleBtn && toggleBtn.innerText.includes('ย่อ')) {
+                toggleBtn.click(); // สั่งย่อหน้าต่าง
+            } else if (closeBtn) {
+                closeBtn.click(); // สั่งปิดหน้าต่างค้นหา
+            } else if (typeof closeBottomSheet === 'function') {
+                closeBottomSheet();
+            }
+            sheetOverlay.classList.remove('show'); // เอาสีดำออก
+        });
+    }
+
+    // เช็คกดปุ่ม แสดง/ย่อ : on /off overlay
+    if (bottomSheet) {
+        bottomSheet.addEventListener('click', (e) => {
+            const btn = e.target.closest('#routeToggleBtn');
+            const closeBtn = e.target.closest('.route-close-btn');
+            //ปุ่มย่อแสดง
+            if (btn) {
+                setTimeout(() => {
+                    if (btn.innerText.includes('ย่อ')) {
+                        if (sheetOverlay) sheetOverlay.classList.add('show');
+                    } else if (btn.innerText.includes('แสดง')) {
+                        if (sheetOverlay) sheetOverlay.classList.remove('show');
+                    }
+                }, 50);
+            }
+            // ปิด เอา overlay ออก
+            else if (closeBtn) {
+                if (sheetOverlay) sheetOverlay.classList.remove('show');
+            }
+        });
+    }
 
     // Elements สำหรับ Map
     const mapContainer = document.getElementById('mapContainer');
@@ -324,6 +364,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.selectRoom = function (roomName, x, y) {
         searchInput.value = roomName;
+
+        const goalInput = document.getElementById('goal-query');
+        if (goalInput) goalInput.value = roomName;
+
         setInitialLocation(x, y, Math.max(getMinScale(), 2.8));
 
         sheetContent.innerHTML = `
@@ -364,6 +408,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function closeBottomSheet() {
         bottomSheet.classList.remove('show');
+        if (sheetOverlay) sheetOverlay.classList.remove('show');
         searchInput.value = '';
         clearSearchBtn.style.display = 'none';
         searchTags.style.display = 'flex';
@@ -374,24 +419,30 @@ document.addEventListener('DOMContentLoaded', function () {
     // ฟังก์ชันนำทาง เชื่อม Backend Gateway
     window.navigateUser = async function(event) {
         if (event) event.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บ
+
+        const startInputNode = document.getElementById('start-query');
+        const goalInputNode = document.getElementById('goal-query');
+
+        if (!startInputNode.value.trim()) {
+            startInputNode.focus();
+            return;
+        }
+        if (!goalInputNode.value.trim()) {
+            goalInputNode.focus();
+            return;
+        }
+
+        if (sheetOverlay) sheetOverlay.classList.add('show');
+
         if (window.__cs232SearchAddon && typeof window.__cs232SearchAddon.navigateUser === 'function') {
             return window.__cs232SearchAddon.navigateUser(event);
         }
 
-        const startInput = document.getElementById('start-query').value.trim();
-        const goalInput = document.getElementById('goal-query').value.trim();
-
-        if (!goalInput) {
-            alert("กรุณาระบุจุดหมาย (TO) ที่ต้องการค้นหาครับ");
-            return;
-        }
-
         // ดึง UI แถบด้านล่างมาเตรียมแสดงข้อความ
-        const bottomSheet = document.getElementById('bottomSheet');
-        const sheetContent = document.getElementById('sheetContent');
 
         sheetContent.innerHTML = `<div style="text-align:center; padding: 20px;">กำลังค้นหาเส้นทาง... 🔍</div>`;
         bottomSheet.classList.add('show');
+        if (sheetOverlay) sheetOverlay.classList.add('show');
 
         try {
             let url = `${String(window.CS232_API_BASE || '').replace(/\/$/, '')}/?q=${encodeURIComponent(goalInput)}`;
