@@ -370,6 +370,84 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => sheetContent.innerHTML = '', 300);
     }
 
+    
+    // ฟังก์ชันนำทาง เชื่อม Backend Gateway
+    window.navigateUser = async function(event) {
+        if (event) event.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บ
+
+        const startInput = document.getElementById('start-query').value.trim();
+        const goalInput = document.getElementById('goal-query').value.trim();
+
+        if (!goalInput) {
+            alert("กรุณาระบุจุดหมาย (TO) ที่ต้องการค้นหาครับ");
+            return;
+        }
+
+        // ดึง UI แถบด้านล่างมาเตรียมแสดงข้อความ
+        const bottomSheet = document.getElementById('bottomSheet');
+        const sheetContent = document.getElementById('sheetContent');
+
+        sheetContent.innerHTML = `<div style="text-align:center; padding: 20px;">กำลังค้นหาเส้นทาง... 🔍</div>`;
+        bottomSheet.classList.add('show');
+
+        try {
+            let url = `http://localhost:8000/?q=${encodeURIComponent(goalInput)}`;
+            
+            if (startInput) {
+                url += `&start=${encodeURIComponent('LC3_entry_' + startInput)}`; 
+            }
+            
+            const response = await fetch(url);
+
+            const data = await response.json();
+
+            if (data.status === "success") {
+                let html = `<div style="padding: 15px; max-height: 400px; overflow-y: auto;">`;
+                html += `<h3 style="margin-bottom: 15px; color: #1a4d8c;">
+                            <i class="fas fa-route"></i> เส้นทางไป ${data.search_result.target}
+                         </h3>`;
+                
+
+                if (data.instructions && data.instructions.length > 0) {
+                    html += `<ul style="list-style: none; padding: 0; margin: 0;">`;
+                    data.instructions.forEach((inst, index) => {
+                        let icon = "fa-arrow-up"; 
+                        if (inst.action === "turn_left") icon = "fa-undo";
+                        if (inst.action === "turn_right") icon = "fa-redo";
+                        if (inst.action === "stairs_up" || inst.action === "stairs_down") icon = "fa-stairs";
+
+                        html += `<li style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center;">
+                                    <span style="background: #1a4d8c; color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; margin-right: 15px; font-size: 12px; flex-shrink: 0;">${index + 1}</span>
+                                    <i class="fas ${icon}" style="color: #666; margin-right: 15px; width: 16px; text-align: center;"></i>
+                                    <span style="font-size: 14px;">${inst.instruction}</span>
+                                 </li>`;
+                    });
+                    html += `</ul>`;
+                } else {
+                    html += `<p style="text-align:center; color: #28a745;">คุณมาถึงจุดหมายแล้ว!</p>`;
+                }
+                html += `</div>`;
+                
+                sheetContent.innerHTML = html;
+                console.log("✅ Route Nodes:", data.route);
+
+            } else {
+                sheetContent.innerHTML = `<div style="text-align:center; padding: 20px; color: #dc3545;">
+                                            <i class="fas fa-exclamation-circle" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+                                            ${data.message || "ไม่พบเส้นทาง"}
+                                          </div>`;
+            }
+
+        } catch (error) {
+            console.error("API Error:", error);
+            sheetContent.innerHTML = `<div style="text-align:center; padding: 20px; color: #dc3545;">
+                                        <i class="fas fa-server" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+                                        ไม่สามารถเชื่อมต่อ Backend ได้<br>
+                                        <small style="color: #666;">อย่าลืมรัน 'python gateway.py' ที่ Terminal ด้วยนะครับ</small>
+                                      </div>`;
+        }
+    };
+
     let isMapLoaded = false;
     window.addEventListener('load', () => {
         if (!isMapLoaded) {
