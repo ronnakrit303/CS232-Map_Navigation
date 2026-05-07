@@ -248,12 +248,128 @@
         bottomSheet.classList.add('show');
     }
 
+    function edgeBetween(startId, endId) {
+        const edges = state.graph && Array.isArray(state.graph.edges) ? state.graph.edges : [];
+        return edges.find(edge =>
+            (edge.from === startId && edge.to === endId) ||
+            (edge.from === endId && edge.to === startId)
+        );
+    }
+
+    function routeSegmentDistance(startNode, endNode, edge) {
+        const rawDistance = edge ? Number(edge.distance) : 0;
+        if (Number.isFinite(rawDistance) && rawDistance > 0) return Math.round(rawDistance * 10) / 10;
+
+        const dx = Number(endNode.x || 0) - Number(startNode.x || 0);
+        const dy = Number(endNode.y || 0) - Number(startNode.y || 0);
+        return Math.round(Math.hypot(dx, dy) * 10) / 10;
+    }
+
+    function vectorBetweenNodes(startNode, endNode) {
+        return {
+            x: Number(endNode.x || 0) - Number(startNode.x || 0),
+            y: Number(endNode.y || 0) - Number(startNode.y || 0)
+        };
+    }
+
+    function turnDirection(previousVector, nextVector) {
+        const previousLength = Math.hypot(previousVector.x, previousVector.y);
+        const nextLength = Math.hypot(nextVector.x, nextVector.y);
+        if (!previousLength || !nextLength) return { direction: 'straight', text: 'เดินตรง' };
+
+        const dot = previousVector.x * nextVector.x + previousVector.y * nextVector.y;
+        const cross = previousVector.x * nextVector.y - previousVector.y * nextVector.x;
+        const angle = Math.atan2(cross, dot) * 180 / Math.PI;
+        const absAngle = Math.abs(angle);
+
+        if (absAngle < 30) return { direction: 'straight', text: 'เดินตรง' };
+        if (absAngle > 150) return { direction: 'u_turn', text: 'กลับหลัง' };
+        if (angle > 0) return { direction: 'right', text: 'เลี้ยวขวา' };
+        return { direction: 'left', text: 'เลี้ยวซ้าย' };
+    }
+
+    function isStairSegment(startNode, endNode, edge) {
+        const edgeType = edge && edge.type;
+        return ['stairs', 'up', 'down'].includes(edgeType) ||
+            startNode.type === 'stairs' && endNode.type === 'stairs' && startNode.floor !== endNode.floor;
+    }
+
+    function buildRouteInstructions(path) {
+        if (!Array.isArray(path) || path.length < 2) return [];
+
+        const instructions = [];
+        for (let index = 0; index < path.length - 1; index += 1) {
+            const startId = path[index];
+            const endId = path[index + 1];
+            const startNode = findNodeByIdOrName(startId);
+            const endNode = findNodeByIdOrName(endId);
+            if (!startNode || !endNode) continue;
+
+            const edge = edgeBetween(startId, endId);
+            const distance = routeSegmentDistance(startNode, endNode, edge);
+            let direction = 'straight';
+            let action = 'walk';
+            let instruction = `เดินตรง ${distance} ม.`;
+
+            if (isStairSegment(startNode, endNode, edge)) {
+                const startFloor = Number(startNode.floor || 0);
+                const endFloor = Number(endNode.floor || 0);
+                if ((edge && edge.type === 'up') || endFloor > startFloor) {
+                    direction = 'up';
+                    action = 'stairs_up';
+                    instruction = `ขึ้นบันไดไปชั้น ${endNode.floor}`;
+                } else if ((edge && edge.type === 'down') || endFloor < startFloor) {
+                    direction = 'down';
+                    action = 'stairs_down';
+                    instruction = `ลงบันไดไปชั้น ${endNode.floor}`;
+                } else {
+                    direction = 'stairs';
+                    action = 'stairs';
+                    instruction = 'ใช้บันได';
+                }
+            } else if (index > 0) {
+                const previousNode = findNodeByIdOrName(path[index - 1]);
+                if (previousNode) {
+                    const turn = turnDirection(vectorBetweenNodes(previousNode, startNode), vectorBetweenNodes(startNode, endNode));
+                    direction = turn.direction;
+                    action = direction === 'straight' ? 'walk' : `turn_${direction}`;
+                    instruction = direction === 'straight'
+                        ? `เดินตรง ${distance} ม.`
+                        : `${turn.text} แล้วเดินต่อ ${distance} ม.`;
+                }
+            }
+
+            instructions.push({
+                step: instructions.length + 1,
+                action,
+                direction,
+                instruction,
+                from_node: startId,
+                to_node: endId,
+                distance,
+                unit: 'm',
+                floor: startNode.floor
+            });
+        }
+
+        return instructions;
+    }
+
+    function hasUsefulInstructions(instructions) {
+        return Array.isArray(instructions) && instructions.length > 0 && instructions.every(item => {
+            const text = String(item.instruction || '');
+            return text && !text.includes('ไปยัง') && item.distance !== '' && item.distance !== undefined && Number.isFinite(Number(item.distance));
+        });
+    }
+
     function renderRouteResult(startNode, goalNode, pathfindingData, directionData) {
         const bottomSheet = document.getElementById('bottomSheet');
         const sheetContent = document.getElementById('sheetContent');
         if (!bottomSheet || !sheetContent) return;
 
-        const instructions = directionData.instructions || [];
+        const instructions = hasUsefulInstructions(directionData.instructions)
+            ? directionData.instructions
+            : buildRouteInstructions(pathfindingData.path);
         const instructionItems = instructions.map(item => `
             <li class="instruction-item">
                 <span class="instruction-step">${item.step}</span>
@@ -346,13 +462,7 @@
                 status: 'success',
                 total_distance: pathfindingData.total_distance,
                 unit: pathfindingData.unit || 'm',
-                instructions: pathfindingData.path.slice(1).map((nodeId, index) => ({
-                    step: index + 1,
-                    instruction: `ไปยัง ${nodeTitle(nodeId)}`,
-                    direction: 'walk',
-                    distance: '',
-                    unit: ''
-                }))
+                instructions: buildRouteInstructions(pathfindingData.path)
             };
         }
 
