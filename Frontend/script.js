@@ -54,6 +54,54 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+   document.addEventListener('mousedown', (e) => {
+        const startSuggestions = document.getElementById('start-suggestions');
+        const goalSuggestions = document.getElementById('goal-suggestions');
+
+        // ฟังก์ชันสั่งปิด
+        const forceHide = (box) => {
+            if (box && box.innerHTML !== '') {
+                box.classList.remove('active');
+                box.style.display = 'none'; // บังคับซ่อนด้วยสไตล์
+            }
+        };
+
+        // ถ้าคลิกที่ช่อง FROM บังคับปิดช่อง TO
+        if (e.target.closest('#start-query')) {
+            forceHide(goalSuggestions);
+        }
+        
+        // ถ้าคลิกที่ช่อง TO บังคับปิดช่อง FROM
+        if (e.target.closest('#goal-query')) {
+            forceHide(startSuggestions);
+        }
+
+        // ถ้าคลิกที่อื่นเลยปิดทั้งคู่
+        if (!e.target.closest('#start-query') && !e.target.closest('#start-suggestions')) {
+            forceHide(startSuggestions);
+        }
+        if (!e.target.closest('#goal-query') && !e.target.closest('#goal-suggestions')) {
+            forceHide(goalSuggestions);
+        }
+    }, true);
+
+    //  คืนค่าให้กล่องกลับมาแสดงได้ปกติ เมื่อผู้ใช้เริ่มพิมพ์ใหม่
+    const startInputQuery = document.getElementById('start-query');
+    const goalInputQuery = document.getElementById('goal-query');
+
+    if (startInputQuery) {
+        startInputQuery.addEventListener('input', () => {
+            const box = document.getElementById('start-suggestions');
+            if (box) box.style.display = '';
+        });
+    }
+    if (goalInputQuery) {
+        goalInputQuery.addEventListener('input', () => {
+            const box = document.getElementById('goal-suggestions');
+            if (box) box.style.display = '';
+        });
+    }
+
     // Elements สำหรับ Map
     const mapContainer = document.getElementById('mapContainer');
     const mapWrapper = document.getElementById('mapWrapper');
@@ -447,6 +495,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (sheetOverlay) sheetOverlay.classList.add('show');
+
+        //พับเก็บแถบค้นหาเมื่อนำทาง
+        const searchPanelContent = document.getElementById('search-panel-content');
+        const searchBox = document.getElementById('single-search-box');
+        
+        if (searchPanelContent && !searchPanelContent.classList.contains('collapsed')) {
+            // ดักจับไอคอนลูกศร
+            const chevronIcon = searchBox ? searchBox.querySelector('.fa-chevron-up, .fa-chevron-down') : null;
+            
+            if (chevronIcon) {
+                // ถ้าเจอ ให้สั่งคอมพิวเตอร์จำลองการกดปุ่มที่ครอบลูกศรนั้นอยู่เลย!
+                const btn = chevronIcon.closest('button') || chevronIcon.parentElement;
+                if (btn) btn.click();
+            } else {
+                // ถ้าหาไม่เจอจริงๆ ค่อยบังคับพับ
+                searchPanelContent.classList.add('collapsed');
+            }
+        }
 
         if (window.__cs232SearchAddon && typeof window.__cs232SearchAddon.navigateUser === 'function') {
             return window.__cs232SearchAddon.navigateUser(event);
