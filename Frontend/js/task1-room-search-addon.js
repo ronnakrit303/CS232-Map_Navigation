@@ -247,7 +247,7 @@
         if (!bottomSheet || !sheetContent) return;
 
         const instructions = directionData.instructions || [];
-        const instructionItems = instructions.map(item => `
+        const instructionItems = instructions.length > 0 ? instructions.map(item => `
             <li class="instruction-item">
                 <span class="instruction-step">${item.step}</span>
                 <div>
@@ -255,20 +255,28 @@
                     <small>${item.direction} · ${item.distance} ${item.unit || 'm'}</small>
                 </div>
             </li>
-        `).join('');
+        `).join('') : `
+            <li class="instruction-item">
+                <span class="instruction-step">!</span>
+                <div>
+                    <strong>Direction service ยังไม่พร้อม</strong>
+                    <small>แสดงเส้นทางจาก Route API ก่อน</small>
+                </div>
+            </li>
+        `;
 
         sheetContent.innerHTML = `
             <div class="result-header">
                 <div class="route-title">
                     <i class="fas fa-route"></i>
                     <span>${nodeTitle(startNode.id)} to ${nodeTitle(goalNode.id)}</span>
-                    <span class="route-dist">${directionData.total_distance || pathfindingData.total_distance} m</span>
+                    <span class="route-dist">${pathfindingData.total_distance} m</span>
                 </div>
                 <div class="route-subtitle">${pathfindingData.path.map(nodeTitle).join(' -> ')}</div>
             </div>
             <div class="route-stats">
                 <span>${pathfindingData.path.length} nodes</span>
-                <span>${instructions.length} steps</span>
+                <span>${instructions.length || 'route only'} steps</span>
             </div>
             <ol class="instruction-list">${instructionItems}</ol>
         `;
@@ -292,11 +300,18 @@
     async function requestRoute(startNode, goalNode) {
         const pathfindingUrl = apiUrl(`/route?start=${encodeURIComponent(startNode.id)}&end=${encodeURIComponent(goalNode.id)}`);
         const pathfindingData = await fetchJson(pathfindingUrl);
-        const directionData = await fetchJson(apiUrl('/direction'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: pathfindingData.path })
-        });
+        let directionData = { instructions: [], total_distance: pathfindingData.total_distance };
+
+        try {
+            directionData = await fetchJson(apiUrl('/direction'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: pathfindingData.path })
+            });
+        } catch (error) {
+            console.warn('[Task2/US5] Direction service unavailable, showing route only:', error);
+        }
+
         return { pathfindingData, directionData };
     }
 
