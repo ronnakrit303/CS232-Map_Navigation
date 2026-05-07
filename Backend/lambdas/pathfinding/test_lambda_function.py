@@ -17,11 +17,13 @@ DATABASE_GRAPH_PATH = os.path.abspath(
 class PathfindingLambdaTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # ใช้ข้อมูลจริงจาก Database/graph.json เพื่อให้ test ใกล้เคียงการใช้งานจริง
         with open(DATABASE_GRAPH_PATH, "r", encoding="utf-8") as graph_file:
             cls.graph = json.load(graph_file)
         _, cls.adjacency = build_adjacency(cls.graph)
 
     def assert_valid_real_graph_path(self, path, start_node, end_node):
+        # ตรวจว่า path เริ่มและจบถูก node และทุกช่วงทางมี edge เชื่อมกันจริงใน graph
         self.assertGreaterEqual(len(path), 2)
         self.assertEqual(path[0], start_node)
         self.assertEqual(path[-1], end_node)
@@ -31,6 +33,7 @@ class PathfindingLambdaTest(unittest.TestCase):
             self.assertIn(next_node, neighbors)
 
     def test_find_shortest_path_between_real_first_floor_rooms(self):
+        # เคสหาเส้นทางระหว่างห้องจริงบนชั้น 1
         result = find_shortest_path(self.graph, "LC3_101", "LC3_121")
 
         self.assert_valid_real_graph_path(result["path"], "LC3_101", "LC3_121")
@@ -54,6 +57,7 @@ class PathfindingLambdaTest(unittest.TestCase):
         self.assertEqual(result["total_distance"], 614.0)
 
     def test_find_shortest_path_between_nearby_real_rooms(self):
+        # เคสห้องใกล้กัน เพื่อเช็กว่า algorithm คืน path สั้นและต่อเนื่อง
         result = find_shortest_path(self.graph, "LC3_111", "LC3_110")
 
         self.assert_valid_real_graph_path(result["path"], "LC3_111", "LC3_110")
@@ -61,6 +65,7 @@ class PathfindingLambdaTest(unittest.TestCase):
         self.assertEqual(result["total_distance"], 189.0)
 
     def test_find_shortest_path_between_real_floors(self):
+        # เคสข้ามชั้น โดยใช้ node บันไดที่มี edge เชื่อมระหว่างชั้นจริง
         result = find_shortest_path(self.graph, "LC3_stair-1", "LC3_F2_stair-1")
 
         self.assert_valid_real_graph_path(result["path"], "LC3_stair-1", "LC3_F2_stair-1")
@@ -68,6 +73,7 @@ class PathfindingLambdaTest(unittest.TestCase):
         self.assertEqual(result["total_distance"], 27.0)
 
     def test_lambda_handler_loads_database_graph_file(self):
+        # ไม่ส่ง graph เข้า event เพื่อยืนยันว่า lambda_handler โหลด Database/graph.json เอง
         event = {"queryStringParameters": {"start": "LC3_101", "end": "LC3_121"}}
 
         response = lambda_handler(event, None)
@@ -79,6 +85,7 @@ class PathfindingLambdaTest(unittest.TestCase):
         self.assertEqual(body["total_distance"], 614.0)
 
     def test_lambda_handler_rejects_missing_real_node(self):
+        # เคส node ปลายทางไม่มีใน graph ต้องตอบ 404 พร้อม error
         event = {"queryStringParameters": {"start": "LC3_101", "end": "LC3_NOT_FOUND"}}
 
         response = lambda_handler(event, None)

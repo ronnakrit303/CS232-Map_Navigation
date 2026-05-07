@@ -15,6 +15,7 @@ GRAPH_S3_KEY = os.environ.get("GRAPH_S3_KEY") or os.environ.get("S3_KEY") or "gr
 _GRAPH_CACHE = None
 
 
+# สร้าง response ให้มีรูปแบบเดียวกับที่ API Gateway ต้องการ
 def response(status_code, body):
     return {
         "statusCode": status_code,
@@ -36,6 +37,7 @@ def parse_body(event):
 
 
 def get_request_params(event):
+    # รองรับทั้ง query string และ JSON body เพื่อให้เรียกจาก frontend หรือ test ได้สะดวก
     query_params = event.get("queryStringParameters") or {}
     body = parse_body(event)
     return {
@@ -46,6 +48,7 @@ def get_request_params(event):
 
 
 def load_graph_from_s3(bucket, key):
+    # ใช้ตอน deploy บน AWS Lambda โดยโหลด graph.json จาก S3
     import boto3
 
     s3 = boto3.client("s3")
@@ -54,6 +57,7 @@ def load_graph_from_s3(bucket, key):
 
 
 def load_graph():
+    # cache graph ไว้ใน memory เพื่อลดการอ่านไฟล์หรือเรียก S3 ซ้ำใน Lambda warm start
     global _GRAPH_CACHE
     if _GRAPH_CACHE is not None:
         return _GRAPH_CACHE
@@ -74,6 +78,7 @@ def coordinate_distance(node_a, node_b):
 
 
 def edge_distance(start_node, end_node, edge):
+    # ถ้า edge มี distance ให้ใช้ค่านั้น ถ้าไม่มีหรือเป็น 0 ให้คำนวณจากพิกัดของ node
     try:
         distance = float(edge.get("distance", 0))
     except (TypeError, ValueError):
@@ -85,12 +90,14 @@ def edge_distance(start_node, end_node, edge):
 
 
 def heuristic(current_node, end_node):
+    # heuristic ของ A* ใช้ระยะเส้นตรงบนชั้นเดียวกัน ส่วนข้ามชั้นให้เป็น 0 เพื่อไม่ประเมินเกินจริง
     if current_node.get("floor") != end_node.get("floor"):
         return 0
     return coordinate_distance(current_node, end_node)
 
 
 def build_adjacency(graph):
+    # แปลง graph.json เป็น adjacency list เพื่อให้ algorithm หาเพื่อนบ้านของแต่ละ node ได้เร็ว
     nodes = {node["id"]: node for node in graph.get("nodes", []) if node.get("id")}
     adjacency = {node_id: [] for node_id in nodes}
 
@@ -108,6 +115,7 @@ def build_adjacency(graph):
 
 
 def reconstruct_path(previous, start_node, end_node):
+    # ย้อนจากปลายทางกลับไปต้นทางด้วย previous map แล้วกลับลำดับให้เป็น path ที่เดินจริง
     path = []
     current = end_node
 
@@ -122,6 +130,7 @@ def reconstruct_path(previous, start_node, end_node):
 
 
 def find_shortest_path(graph, start_node, end_node):
+    # A* algorithm: เลือก node ที่มีค่าเดินทางจริง + heuristic ต่ำที่สุดก่อน
     nodes, adjacency = build_adjacency(graph)
 
     if start_node not in nodes:
@@ -136,6 +145,7 @@ def find_shortest_path(graph, start_node, end_node):
     open_set = [(heuristic(nodes[start_node], nodes[end_node]), 0, start_node)]
     while open_set:
         _, current_distance, current_node = heapq.heappop(open_set)
+        # ข้ามรายการเก่าใน priority queue ที่ไม่ใช่ระยะทางล่าสุดแล้ว
         if current_distance > distances[current_node]:
             continue
 
@@ -163,6 +173,7 @@ def find_shortest_path(graph, start_node, end_node):
 
 
 def lambda_handler(event, context):
+    # Lambda entry point รับ start/end แล้วส่ง ordered path กลับไปให้ API Gateway หรือ frontend
     try:
         params = get_request_params(event or {})
     except json.JSONDecodeError:
