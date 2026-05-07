@@ -10,7 +10,7 @@ DEFAULT_GRAPH_PATH = os.path.abspath(
 
 GRAPH_PATH = os.environ.get("GRAPH_PATH", DEFAULT_GRAPH_PATH)
 GRAPH_S3_BUCKET = os.environ.get("GRAPH_S3_BUCKET") or os.environ.get("S3_BUCKET")
-GRAPH_S3_KEY = os.environ.get("GRAPH_S3_KEY") or os.environ.get("S3_KEY") or "graph.json"
+GRAPH_S3_KEY = os.environ.get("GRAPH_S3_KEY") or os.environ.get("S3_KEY") or "graph/graph.json"
 
 _GRAPH_CACHE = None
 
@@ -21,6 +21,8 @@ def response(status_code, body):
         "statusCode": status_code,
         "headers": {
             "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
             "Content-Type": "application/json",
         },
         "body": json.dumps(body, ensure_ascii=False),
@@ -49,11 +51,24 @@ def get_request_params(event):
 
 def load_graph_from_s3(bucket, key):
     # ใช้ตอน deploy บน AWS Lambda โดยโหลด graph.json จาก S3
+    # รองรับทั้ง graph/graph.json และ graph.json เพื่อกันตั้ง Environment Variable ผิดเล็กน้อย
     import boto3
 
     s3 = boto3.client("s3")
-    result = s3.get_object(Bucket=bucket, Key=key)
-    return json.loads(result["Body"].read().decode("utf-8"))
+    candidate_keys = []
+    for candidate in [key, "graph/graph.json", "graph.json"]:
+        if candidate and candidate not in candidate_keys:
+            candidate_keys.append(candidate)
+
+    last_error = None
+    for candidate in candidate_keys:
+        try:
+            result = s3.get_object(Bucket=bucket, Key=candidate)
+            return json.loads(result["Body"].read().decode("utf-8"))
+        except Exception as error:
+            last_error = error
+
+    raise last_error
 
 
 def load_graph():
@@ -114,6 +129,33 @@ def build_adjacency(graph):
     return nodes, adjacency
 
 
+
+
+def resolve_node_id(nodes, value):
+    # รับได้ทั้ง id เต็ม เช่น LC3_F2_204 และชื่อห้องสั้น ๆ เช่น 204 หรือ 101/1
+    if value is None:
+        return None
+    raw = str(value).strip()
+    query = raw.lower().replace("lc3_", "").replace("f2_", "")
+
+    if raw in nodes:
+        return raw
+
+    for node_id, node in nodes.items():
+        if str(node.get("id", "")).lower() == raw.lower():
+            return node_id
+
+    for node_id, node in nodes.items():
+        if str(node.get("name", "")).strip().lower() == query:
+            return node_id
+
+    for node_id in nodes:
+        normalized_id = str(node_id).lower().replace("lc3_", "").replace("f2_", "")
+        if normalized_id == query or normalized_id.endswith("_" + query) or normalized_id.endswith(query):
+            return node_id
+
+    return raw
+
 def reconstruct_path(previous, start_node, end_node):
     # ย้อนจากปลายทางกลับไปต้นทางด้วย previous map แล้วกลับลำดับให้เป็น path ที่เดินจริง
     path = []
@@ -132,6 +174,9 @@ def reconstruct_path(previous, start_node, end_node):
 def find_shortest_path(graph, start_node, end_node):
     # A* algorithm: เลือก node ที่มีค่าเดินทางจริง + heuristic ต่ำที่สุดก่อน
     nodes, adjacency = build_adjacency(graph)
+
+    start_node = resolve_node_id(nodes, start_node)
+    end_node = resolve_node_id(nodes, end_node)
 
     if start_node not in nodes:
         raise ValueError(f"start node not found: {start_node}")

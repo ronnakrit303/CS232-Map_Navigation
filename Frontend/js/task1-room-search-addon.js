@@ -158,9 +158,16 @@
 
     async function fetchJson(url, options) {
         const response = await fetch(url, options);
-        const data = await response.json();
+        const text = await response.text();
+        let data;
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (error) {
+            data = { error: text || response.statusText };
+        }
+
         if (!response.ok || data.status === 'fail') {
-            throw new Error(data.error || data.message || 'Navigation request failed');
+            throw new Error(data.error || data.message || `Navigation request failed (${response.status})`);
         }
         return data;
     }
@@ -247,7 +254,7 @@
         if (!bottomSheet || !sheetContent) return;
 
         const instructions = directionData.instructions || [];
-        const instructionItems = instructions.length > 0 ? instructions.map(item => `
+        const instructionItems = instructions.map(item => `
             <li class="instruction-item">
                 <span class="instruction-step">${item.step}</span>
                 <div>
@@ -255,31 +262,56 @@
                     <small>${item.direction} · ${item.distance} ${item.unit || 'm'}</small>
                 </div>
             </li>
-        `).join('') : `
-            <li class="instruction-item">
-                <span class="instruction-step">!</span>
-                <div>
-                    <strong>Direction service ยังไม่พร้อม</strong>
-                    <small>แสดงเส้นทางจาก Route API ก่อน</small>
-                </div>
-            </li>
-        `;
+        `).join('');
 
         sheetContent.innerHTML = `
             <div class="result-header">
                 <div class="route-title">
                     <i class="fas fa-route"></i>
                     <span>${nodeTitle(startNode.id)} to ${nodeTitle(goalNode.id)}</span>
-                    <span class="route-dist">${pathfindingData.total_distance} m</span>
+                    <span class="route-dist">${directionData.total_distance || pathfindingData.total_distance} m</span>
                 </div>
                 <div class="route-subtitle">${pathfindingData.path.map(nodeTitle).join(' -> ')}</div>
+                <div class="route-actions">
+                    <button type="button" class="route-toggle-btn" id="routeToggleBtn">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>ย่อรายละเอียด</span>
+                    </button>
+                    <button type="button" class="route-close-btn" id="routeCloseBtn">
+                        <i class="fas fa-times"></i>
+                        <span>ปิด</span>
+                    </button>
+                </div>
             </div>
-            <div class="route-stats">
-                <span>${pathfindingData.path.length} nodes</span>
-                <span>${instructions.length || 'route only'} steps</span>
+            <div class="route-details" id="routeDetails">
+                <div class="route-stats">
+                    <span>${pathfindingData.path.length} nodes</span>
+                    <span>${instructions.length} steps</span>
+                </div>
+                <ol class="instruction-list">${instructionItems}</ol>
             </div>
-            <ol class="instruction-list">${instructionItems}</ol>
         `;
+
+        const routeToggleBtn = document.getElementById('routeToggleBtn');
+        const routeCloseBtn = document.getElementById('routeCloseBtn');
+        const routeDetails = document.getElementById('routeDetails');
+
+        if (routeToggleBtn && routeDetails) {
+            routeToggleBtn.addEventListener('click', () => {
+                const isCollapsed = routeDetails.classList.toggle('collapsed');
+                const icon = routeToggleBtn.querySelector('i');
+                const label = routeToggleBtn.querySelector('span');
+                if (icon) icon.className = isCollapsed ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+                if (label) label.textContent = isCollapsed ? 'แสดงรายละเอียด' : 'ย่อรายละเอียด';
+            });
+        }
+
+        if (routeCloseBtn) {
+            routeCloseBtn.addEventListener('click', () => {
+                bottomSheet.classList.remove('show');
+            });
+        }
+
         bottomSheet.classList.add('show');
     }
 
@@ -300,8 +332,8 @@
     async function requestRoute(startNode, goalNode) {
         const pathfindingUrl = apiUrl(`/route?start=${encodeURIComponent(startNode.id)}&end=${encodeURIComponent(goalNode.id)}`);
         const pathfindingData = await fetchJson(pathfindingUrl);
-        let directionData = { instructions: [], total_distance: pathfindingData.total_distance };
 
+        let directionData;
         try {
             directionData = await fetchJson(apiUrl('/direction'), {
                 method: 'POST',
@@ -309,7 +341,19 @@
                 body: JSON.stringify({ path: pathfindingData.path })
             });
         } catch (error) {
-            console.warn('[Task2/US5] Direction service unavailable, showing route only:', error);
+            console.warn('[Task2/US5] Direction API failed, using simple path result:', error);
+            directionData = {
+                status: 'success',
+                total_distance: pathfindingData.total_distance,
+                unit: pathfindingData.unit || 'm',
+                instructions: pathfindingData.path.slice(1).map((nodeId, index) => ({
+                    step: index + 1,
+                    instruction: `ไปยัง ${nodeTitle(nodeId)}`,
+                    direction: 'walk',
+                    distance: '',
+                    unit: ''
+                }))
+            };
         }
 
         return { pathfindingData, directionData };

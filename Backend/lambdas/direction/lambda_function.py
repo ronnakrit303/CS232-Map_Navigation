@@ -8,7 +8,7 @@ DEFAULT_GRAPH_PATH = os.path.abspath(
 )
 GRAPH_PATH = os.environ.get("GRAPH_PATH", DEFAULT_GRAPH_PATH)
 GRAPH_S3_BUCKET = os.environ.get("GRAPH_S3_BUCKET") or os.environ.get("S3_BUCKET")
-GRAPH_S3_KEY = os.environ.get("GRAPH_S3_KEY") or os.environ.get("S3_KEY") or "graph.json"
+GRAPH_S3_KEY = os.environ.get("GRAPH_S3_KEY") or os.environ.get("S3_KEY") or "graph/graph.json"
 TURN_THRESHOLD_DEGREES = 30
 
 _GRAPH_CACHE = None
@@ -20,6 +20,8 @@ def response(status_code, body):
         "statusCode": status_code,
         "headers": {
             "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
             "Content-Type": "application/json",
         },
         "body": json.dumps(body, ensure_ascii=False),
@@ -28,11 +30,24 @@ def response(status_code, body):
 
 def load_graph_from_s3(bucket, key):
     # ใช้ตอน deploy บน AWS Lambda โดยโหลด graph.json จาก S3
+    # รองรับทั้ง graph/graph.json และ graph.json เพื่อกันตั้ง Environment Variable ผิดเล็กน้อย
     import boto3
 
     s3 = boto3.client("s3")
-    result = s3.get_object(Bucket=bucket, Key=key)
-    return json.loads(result["Body"].read().decode("utf-8"))
+    candidate_keys = []
+    for candidate in [key, "graph/graph.json", "graph.json"]:
+        if candidate and candidate not in candidate_keys:
+            candidate_keys.append(candidate)
+
+    last_error = None
+    for candidate in candidate_keys:
+        try:
+            result = s3.get_object(Bucket=bucket, Key=candidate)
+            return json.loads(result["Body"].read().decode("utf-8"))
+        except Exception as error:
+            last_error = error
+
+    raise last_error
 
 
 def load_graph():
@@ -84,6 +99,30 @@ def build_lookups(graph):
         edges[(to_node, from_node)] = edge
     return nodes, edges
 
+
+
+
+def resolve_path_node_ids(nodes, path_ids):
+    resolved = []
+    for raw_id in path_ids:
+        raw = str(raw_id).strip()
+        query = raw.lower().replace("lc3_", "").replace("f2_", "")
+        if raw in nodes:
+            resolved.append(raw)
+            continue
+        match = None
+        for node_id, node in nodes.items():
+            if str(node.get("name", "")).strip().lower() == query:
+                match = node_id
+                break
+        if match is None:
+            for node_id in nodes:
+                normalized_id = str(node_id).lower().replace("lc3_", "").replace("f2_", "")
+                if normalized_id == query or normalized_id.endswith("_" + query) or normalized_id.endswith(query):
+                    match = node_id
+                    break
+        resolved.append(match or raw)
+    return resolved
 
 def segment_distance(start_node, end_node, edge):
     # ใช้ระยะจาก edge ก่อน ถ้าไม่มีหรือเป็น 0 จะคำนวณจากพิกัดของ node
@@ -192,6 +231,7 @@ def generate_instructions(path, graph):
         raise ValueError("path must contain at least 2 nodes")
 
     nodes, edges = build_lookups(graph)
+    path_ids = resolve_path_node_ids(nodes, path_ids)
     missing_nodes = [node_id for node_id in path_ids if node_id not in nodes]
     if missing_nodes:
         raise ValueError(f"node not found: {', '.join(missing_nodes)}")
