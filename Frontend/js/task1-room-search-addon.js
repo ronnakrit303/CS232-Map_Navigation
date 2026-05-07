@@ -326,6 +326,7 @@
             setNavigateButtonLoading(false);
         }
     };
+    window.__cs232SearchAddon.navigateUser = window.navigateUser;
 
     window.__cs232SearchAddon.findNode = findNodeByIdOrName;
     window.__cs232SearchAddon.addItems = function addItems(items) {

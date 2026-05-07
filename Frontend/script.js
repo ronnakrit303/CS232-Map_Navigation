@@ -374,6 +374,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // ฟังก์ชันนำทาง เชื่อม Backend Gateway
     window.navigateUser = async function(event) {
         if (event) event.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บ
+        if (window.__cs232SearchAddon && typeof window.__cs232SearchAddon.navigateUser === 'function') {
+            return window.__cs232SearchAddon.navigateUser(event);
+        }
 
         const startInput = document.getElementById('start-query').value.trim();
         const goalInput = document.getElementById('goal-query').value.trim();
@@ -391,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bottomSheet.classList.add('show');
 
         try {
-            let url = `http://localhost:8000/?q=${encodeURIComponent(goalInput)}`;
+            let url = `${String(window.CS232_API_BASE || '').replace(/\/$/, '')}/?q=${encodeURIComponent(goalInput)}`;
             
             if (startInput) {
                 url += `&start=${encodeURIComponent('LC3_entry_' + startInput)}`; 
@@ -443,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
             sheetContent.innerHTML = `<div style="text-align:center; padding: 20px; color: #dc3545;">
                                         <i class="fas fa-server" style="font-size: 24px; margin-bottom: 10px;"></i><br>
                                         ไม่สามารถเชื่อมต่อ Backend ได้<br>
-                                        <small style="color: #666;">อย่าลืมรัน 'python gateway.py' ที่ Terminal ด้วยนะครับ</small>
+                                        <small style="color: #666;">กรุณาตรวจสอบการตั้งค่า API Gateway ใน Frontend/config.js</small>
                                       </div>`;
         }
     };
