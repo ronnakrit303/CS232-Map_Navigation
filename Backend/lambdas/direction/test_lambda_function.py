@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from lambda_function import generate_instructions, lambda_handler
 
 
+# ใช้ graph ขนาดเล็กเพื่อควบคุมผลลัพธ์ของคำสั่งเดิน เลี้ยว และบันไดใน unit test
 TEST_GRAPH = {
     "building": "LC3",
     "nodes": [
@@ -26,6 +27,7 @@ TEST_GRAPH = {
 
 class DirectionLambdaTest(unittest.TestCase):
     def test_generate_walk_turn_and_stairs_instructions(self):
+        # ตรวจว่า path ที่มีเดินตรง เลี้ยว และขึ้นบันได สร้าง instructions ได้ครบทุก step
         result = generate_instructions(["A", "B", "C", "D"], TEST_GRAPH)
 
         self.assertEqual(result["status"], "success")
@@ -49,6 +51,7 @@ class DirectionLambdaTest(unittest.TestCase):
         self.assertEqual(third["instruction"], "ขึ้นบันไดไปชั้น 2")
 
     def test_lambda_handler_accepts_body_graph(self):
+        # ตรวจว่า lambda_handler รับ graph จาก body และสร้าง instruction ได้โดยไม่ต้องอ่านไฟล์จริง
         event = {
             "body": json.dumps(
                 {
@@ -65,6 +68,7 @@ class DirectionLambdaTest(unittest.TestCase):
         self.assertEqual(body["instructions"][0]["instruction"], "เดินตรง 20 ม.")
 
     def test_lambda_handler_rejects_invalid_json(self):
+        # ตรวจกรณี body เป็น JSON ไม่ถูกต้อง ต้องตอบ 400
         response = lambda_handler({"body": "{"}, None)
         body = json.loads(response["body"])
 
@@ -72,6 +76,7 @@ class DirectionLambdaTest(unittest.TestCase):
         self.assertEqual(body["error"], "invalid JSON")
 
     def test_lambda_handler_rejects_missing_node(self):
+        # ตรวจกรณี path มี node ที่ไม่มีใน graph ต้องตอบ error ชัดเจน
         event = {"body": json.dumps({"path": ["A", "Z"], "graph": TEST_GRAPH})}
 
         response = lambda_handler(event, None)

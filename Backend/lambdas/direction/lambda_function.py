@@ -12,6 +12,7 @@ TURN_THRESHOLD_DEGREES = 30
 _GRAPH_CACHE = None
 
 
+# สร้าง response มาตรฐานสำหรับส่งกลับผ่าน Lambda/API Gateway
 def response(status_code, body):
     return {
         "statusCode": status_code,
@@ -24,6 +25,7 @@ def response(status_code, body):
 
 
 def load_graph():
+    # โหลด graph จากไฟล์จริง และ cache ไว้เพื่อลดการอ่านไฟล์ซ้ำ
     global _GRAPH_CACHE
     if _GRAPH_CACHE is None:
         with open(GRAPH_PATH, "r", encoding="utf-8") as graph_file:
@@ -32,6 +34,7 @@ def load_graph():
 
 
 def parse_body(event):
+    # แปลง body จาก API Gateway ให้เป็น dict เพื่อใช้งานต่อใน Lambda
     raw_body = event.get("body") if isinstance(event, dict) else None
     if raw_body is None:
         return {}
@@ -41,6 +44,7 @@ def parse_body(event):
 
 
 def normalize_path(path):
+    # รองรับ path ที่ส่งมาเป็น list ของ node id หรือ list ของ object ที่มี id/node_id
     normalized = []
     for item in path:
         if isinstance(item, dict):
@@ -54,6 +58,7 @@ def normalize_path(path):
 
 
 def build_lookups(graph):
+    # สร้าง lookup ของ nodes และ edges เพื่อดึงข้อมูลแต่ละช่วงของ path ได้เร็ว
     nodes = {node["id"]: node for node in graph.get("nodes", [])}
     edges = {}
     for edge in graph.get("edges", []):
@@ -67,6 +72,7 @@ def build_lookups(graph):
 
 
 def segment_distance(start_node, end_node, edge):
+    # ใช้ระยะจาก edge ก่อน ถ้าไม่มีหรือเป็น 0 จะคำนวณจากพิกัดของ node
     raw_distance = edge.get("distance") if edge else None
     try:
         distance = float(raw_distance)
@@ -82,6 +88,7 @@ def segment_distance(start_node, end_node, edge):
 
 
 def vector_between(start_node, end_node):
+    # สร้าง vector ของการเดินจาก node หนึ่งไปอีก node หนึ่ง เพื่อใช้คำนวณทิศทาง
     return (
         float(end_node.get("x", 0)) - float(start_node.get("x", 0)),
         float(end_node.get("y", 0)) - float(start_node.get("y", 0)),
@@ -89,6 +96,7 @@ def vector_between(start_node, end_node):
 
 
 def turn_direction(previous_vector, next_vector):
+    # เปรียบเทียบ vector ก่อนหน้าและถัดไป เพื่อบอกว่าเดินตรง เลี้ยวซ้าย เลี้ยวขวา หรือกลับหลัง
     prev_length = math.hypot(*previous_vector)
     next_length = math.hypot(*next_vector)
     if prev_length == 0 or next_length == 0:
@@ -109,6 +117,7 @@ def turn_direction(previous_vector, next_vector):
 
 
 def heading_from_vector(vector):
+    # แปลง vector เป็นทิศหลัก เพื่อให้ frontend รู้แนวการเดินของแต่ละช่วง
     dx, dy = vector
     if abs(dx) >= abs(dy):
         return "east" if dx >= 0 else "west"
@@ -116,12 +125,14 @@ def heading_from_vector(vector):
 
 
 def format_distance(distance):
+    # แสดงระยะทางแบบไม่มี .0 ถ้าเป็นจำนวนเต็ม
     if float(distance).is_integer():
         return str(int(distance))
     return str(distance)
 
 
 def is_stair_segment(start_node, end_node, edge):
+    # ตรวจว่าช่วงทางนี้เป็นบันไดหรือเป็นการเคลื่อนที่ข้ามชั้น
     edge_type = (edge or {}).get("type", "")
     return (
         edge_type in {"stairs", "up", "down"}
@@ -132,6 +143,7 @@ def is_stair_segment(start_node, end_node, edge):
 
 
 def stair_action(start_node, end_node, edge):
+    # แยกคำสั่งบันไดขึ้น ลง หรือใช้บันไดทั่วไปจาก type ของ edge และเลขชั้น
     edge_type = (edge or {}).get("type", "")
     start_floor = int(start_node.get("floor", 0) or 0)
     end_floor = int(end_node.get("floor", 0) or 0)
@@ -144,6 +156,7 @@ def stair_action(start_node, end_node, edge):
 
 
 def build_instruction(step, action, direction, instruction, start_id, end_id, distance, heading, floor):
+    # รวมข้อมูลของหนึ่งช่วงทางให้อยู่ในรูปแบบ instruction เดียวกันทุก step
     return {
         "step": step,
         "action": action,
@@ -159,6 +172,7 @@ def build_instruction(step, action, direction, instruction, start_id, end_id, di
 
 
 def generate_instructions(path, graph):
+    # แปลง ordered path จาก pathfinding ให้เป็นชุดคำสั่งเดินทีละช่วง
     path_ids = normalize_path(path)
     if len(path_ids) < 2:
         raise ValueError("path must contain at least 2 nodes")
@@ -172,6 +186,7 @@ def generate_instructions(path, graph):
     total_distance = 0
 
     for index in range(len(path_ids) - 1):
+        # ประมวลผลทีละคู่ node เช่น A -> B, B -> C เพื่อสร้าง instruction ราย step
         start_id = path_ids[index]
         end_id = path_ids[index + 1]
         start_node = nodes[start_id]
@@ -181,6 +196,7 @@ def generate_instructions(path, graph):
         total_distance += distance
 
         if is_stair_segment(start_node, end_node, edge):
+            # ถ้าเป็นบันได ให้สร้างคำสั่งพิเศษและไม่ต้องคำนวณเลี้ยวซ้ายขวา
             action, direction, text = stair_action(start_node, end_node, edge)
             instructions.append(
                 build_instruction(
@@ -200,6 +216,7 @@ def generate_instructions(path, graph):
         current_vector = vector_between(start_node, end_node)
         heading = heading_from_vector(current_vector)
         if index == 0:
+            # ช่วงแรกยังไม่มี vector ก่อนหน้า จึงถือว่าเริ่มด้วยการเดินตรง
             direction = "straight"
             text = f"เดินตรง {format_distance(distance)} ม."
         else:
@@ -235,6 +252,7 @@ def generate_instructions(path, graph):
 
 
 def lambda_handler(event, context):
+    # Lambda entry point รับ path แล้วส่ง instructions กลับไปให้ gateway หรือ frontend
     try:
         body = parse_body(event)
     except json.JSONDecodeError:
