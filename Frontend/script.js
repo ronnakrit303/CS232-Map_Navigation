@@ -15,29 +15,26 @@ document.addEventListener('DOMContentLoaded', function () {
     const sheetContent = document.getElementById('sheetContent');
     const sheetOverlay = document.getElementById('sheetOverlay');
 
-    // Overlay
     if (sheetOverlay) {
         sheetOverlay.addEventListener('click', () => {
             const toggleBtn = document.getElementById('routeToggleBtn'); 
             const closeBtn = document.querySelector('.route-close-btn');
             
             if (toggleBtn && toggleBtn.innerText.includes('ย่อ')) {
-                toggleBtn.click(); // สั่งย่อหน้าต่าง
+                toggleBtn.click();
             } else if (closeBtn) {
-                closeBtn.click(); // สั่งปิดหน้าต่างค้นหา
+                closeBtn.click();
             } else if (typeof closeBottomSheet === 'function') {
                 closeBottomSheet();
             }
-            sheetOverlay.classList.remove('show'); // เอาสีดำออก
+            sheetOverlay.classList.remove('show');
         });
     }
 
-    // เช็คกดปุ่ม แสดง/ย่อ : on /off overlay
     if (bottomSheet) {
         bottomSheet.addEventListener('click', (e) => {
             const btn = e.target.closest('#routeToggleBtn');
             const closeBtn = e.target.closest('.route-close-btn');
-            //ปุ่มย่อแสดง
             if (btn) {
                 setTimeout(() => {
                     if (btn.innerText.includes('ย่อ')) {
@@ -46,9 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (sheetOverlay) sheetOverlay.classList.remove('show');
                     }
                 }, 50);
-            }
-            // ปิด เอา overlay ออก
-            else if (closeBtn) {
+            } else if (closeBtn) {
                 if (sheetOverlay) sheetOverlay.classList.remove('show');
             }
         });
@@ -58,34 +53,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const startSuggestions = document.getElementById('start-suggestions');
         const goalSuggestions = document.getElementById('goal-suggestions');
 
-        // ฟังก์ชันสั่งปิด
         const forceHide = (box) => {
             if (box && box.innerHTML !== '') {
                 box.classList.remove('active');
-                box.style.display = 'none'; // บังคับซ่อนด้วยสไตล์
+                box.style.display = 'none';
             }
         };
 
-        // ถ้าคลิกที่ช่อง FROM บังคับปิดช่อง TO
-        if (e.target.closest('#start-query')) {
-            forceHide(goalSuggestions);
-        }
-        
-        // ถ้าคลิกที่ช่อง TO บังคับปิดช่อง FROM
-        if (e.target.closest('#goal-query')) {
-            forceHide(startSuggestions);
-        }
-
-        // ถ้าคลิกที่อื่นเลยปิดทั้งคู่
-        if (!e.target.closest('#start-query') && !e.target.closest('#start-suggestions')) {
-            forceHide(startSuggestions);
-        }
-        if (!e.target.closest('#goal-query') && !e.target.closest('#goal-suggestions')) {
-            forceHide(goalSuggestions);
-        }
+        if (e.target.closest('#start-query')) forceHide(goalSuggestions);
+        if (e.target.closest('#goal-query')) forceHide(startSuggestions);
+        if (!e.target.closest('#start-query') && !e.target.closest('#start-suggestions')) forceHide(startSuggestions);
+        if (!e.target.closest('#goal-query') && !e.target.closest('#goal-suggestions')) forceHide(goalSuggestions);
     }, true);
 
-    //  คืนค่าให้กล่องกลับมาแสดงได้ปกติ เมื่อผู้ใช้เริ่มพิมพ์ใหม่
     const startInputQuery = document.getElementById('start-query');
     const goalInputQuery = document.getElementById('goal-query');
 
@@ -102,16 +82,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Elements สำหรับ Map
     const mapContainer = document.getElementById('mapContainer');
     const mapWrapper = document.getElementById('mapWrapper');
     const mapImage = document.getElementById('mapImage');
     const zoomInBtn = document.getElementById('zoomIn');
     const zoomOutBtn = document.getElementById('zoomOut');
 
-    // ==========================================
-    // เอนจิน Pan & Zoom สไตล์ Google Maps
-    // ==========================================
     let currentScale = 1;
     let panX = 0;
     let panY = 0;
@@ -122,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const imgHeight = mapImage.naturalHeight || 800;
         const widthRatio = mapContainer.clientWidth / imgWidth;
         const heightRatio = mapContainer.clientHeight / imgHeight;
-        return Math.max(widthRatio, heightRatio); // บังคับให้ภาพเต็มขอบจอเสมอ
+        return Math.min(widthRatio, heightRatio);
     }
 
     function updateMapTransform() {
@@ -135,29 +111,26 @@ document.addEventListener('DOMContentLoaded', function () {
         const scaledWidth = imgWidth * currentScale;
         const scaledHeight = imgHeight * currentScale;
 
-        // คำนวณขอบเขตเพื่อไม่ให้เลื่อนหลุดจอ
-        let minX = mapContainer.clientWidth - scaledWidth;
-        let maxX = 0;
-        let minY = mapContainer.clientHeight - scaledHeight;
-        let maxY = 0;
+        // แก้งาน #1: ขยายอิสระการเลื่อนแผนที่ให้สามารถลากดูด้านล่างที่โดน bottom sheet บังได้
+        const overscrollY = mapContainer.clientHeight * 0.6;
+        const overscrollX = mapContainer.clientWidth * 0.4;
 
-        if (scaledWidth < mapContainer.clientWidth) minX = maxX = (mapContainer.clientWidth - scaledWidth) / 2;
-        if (scaledHeight < mapContainer.clientHeight) minY = maxY = (mapContainer.clientHeight - scaledHeight) / 2;
+        let minX = mapContainer.clientWidth - scaledWidth - overscrollX;
+        let maxX = overscrollX;
+        let minY = mapContainer.clientHeight - scaledHeight - overscrollY;
+        let maxY = overscrollY;
 
         if (panX < minX) panX = minX;
         if (panX > maxX) panX = maxX;
         if (panY < minY) panY = minY;
         if (panY > maxY) panY = maxY;
 
-        // ขยับตัว Wrapper แทนการขยับรูป
         mapWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${currentScale})`;
 
-        // ปรับขนาดหมุด (Marker) ไม่ให้ใหญ่ตามการซูม
         const marker = document.getElementById('marker');
         if (marker) marker.style.transform = `translate(-50%, -50%) scale(${1 / currentScale})`;
     }
 
-    // ฟังก์ชันซูมเข้า-ออก โดยเล็งไปที่กึ่งกลางหน้าจอ
     function zoomToCenter(newScale) {
         const centerX = mapContainer.clientWidth / 2;
         const centerY = mapContainer.clientHeight / 2;
@@ -172,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function () {
     zoomInBtn.addEventListener('click', () => zoomToCenter(currentScale * 1.3));
     zoomOutBtn.addEventListener('click', () => zoomToCenter(currentScale / 1.3));
 
-    // -- 1. ระบบลากด้วยเมาส์ (Desktop) --
     let isDragging = false;
     let startX, startY;
 
@@ -192,7 +164,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.addEventListener('mouseup', () => isDragging = false);
 
-    // -- 2. ระบบสัมผัสหน้าจอ (Touch Mobile) --
     let initialDistance = null;
     let initialScale = 1;
     let touchStartX, touchStartY;
@@ -245,7 +216,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // -- 3. ระบบซูมด้วยลูกกลิ้งเมาส์ (เล็งตรงไหน ซูมตรงนั้น) --
     mapContainer.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = e.deltaY < 0 ? 1.15 : 1 / 1.15;
@@ -262,26 +232,19 @@ document.addEventListener('DOMContentLoaded', function () {
         updateMapTransform();
     }, { passive: false });
 
-    // ==========================================
-    // ล็อคเป้าหมายเริ่มต้น (เปลี่ยนมารับค่า Pixel จริงจาก graph.json)
-    // ==========================================
     function setInitialLocation(x, y, startZoom, shouldHighlight = true) {
-        currentScale = startZoom;
+        if (startZoom !== null && startZoom !== undefined) {
+            currentScale = startZoom;
+        }
 
-        // รับค่าพิกัดมาตรงๆ ไม่ต้องเอาไปหาร 100 แล้ว
         const targetPixelX = parseFloat(x);
         const targetPixelY = parseFloat(y);
 
-        // คำนวณให้จุดเป้าหมายอยู่กึ่งกลางหน้าจอ
         panX = (mapContainer.clientWidth / 2) - (targetPixelX * currentScale);
         panY = (mapContainer.clientHeight / 2) - (targetPixelY * currentScale);
 
         updateMapTransform();
 
-        // แจ้งเตือนดูว่าพิกัดถูกต้องไหม (ถ้าเทสผ่านแล้ว ลบบรรทัด log นี้ทิ้งได้ครับ)
-        console.log("เลื่อนแผนที่ไปที่ Pixel X:", targetPixelX, " Y:", targetPixelY);
-
-        // ส่งพิกัดไปให้ฟังก์ชันวาดจุดแดง
         if (shouldHighlight && typeof highlightRoom === 'function') {
             highlightRoom(targetPixelX, targetPixelY);
         }
@@ -297,35 +260,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!response.ok) throw new Error("หาไฟล์ไม่เจอ");
 
                 const data = await response.json();
-
-                // ค้นหาห้องจากในไฟล์ JSON
                 const locationData = data.nodes.find(node => node.id === currentLocationId);
 
                 if (locationData) {
                     const activeFloorBtn = document.querySelector('.floor-btn.active');
                     const currentFloorOnUI = activeFloorBtn ? activeFloorBtn.getAttribute('data-floor') : '1';
 
-                    // Autofill ช่อง From
                     const startInput = document.getElementById('start-query');
                     if (startInput) {
                         let displayFrom = currentLocationId.replace('LC3_', '').replace('F2_', '');
-
                         startInput.value = displayFrom;
                     }
 
-                    // วางหมุดเมื่อรูปพร้อม
                     const placeMarkerWhenReady = () => {
                         if (mapImage.complete && mapImage.naturalWidth > 0) {
                             setInitialLocation(locationData.x, locationData.y, 2.5);
                         } else {
                             mapImage.onload = () => {
                                 setInitialLocation(locationData.x, locationData.y, 2.5);
-                                mapImage.onload = null; // ป้องกันลูป
+                                mapImage.onload = null;
                             };
                         }
                     };
 
-                    // สลับชั้นถ้ายืนอยู่คนละชั้น
                     if (String(locationData.floor) !== currentFloorOnUI) {
                         const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${locationData.floor}"]`);
                         if (targetFloorBtn) {
@@ -335,22 +292,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         placeMarkerWhenReady();
                     }
-                } else {
-                    console.error("ไม่พบห้องนี้", currentLocationId);
                 }
             } catch (error) {
                 console.error("เกิดข้อผิดพลาด:", error);
             }
         } else {
-            // ถ้าเปิดเว็บมาเฉยๆให้โชว์จุดเริ่มต้นตรงนี้ (แต่ไม่ต้องวาดหมุดแดง)
             if (mapImage.complete) setInitialLocation(193, 175, 1.8, false);
             else mapImage.onload = () => setInitialLocation(193, 175, 1.8, false);
         }
     }
 
-    // ==========================================
-    // UI ควบคุมต่างๆ (ปุ่มเปลี่ยนชั้น, ภาษา, ค้นหา)
-    // ==========================================
     const floorBtns = document.querySelectorAll('.floor-btn');
     floorBtns.forEach(btn => {
         btn.addEventListener('click', function () {
@@ -364,27 +315,125 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const langToggle = document.getElementById('langToggle');
     let isThai = true;
-    langToggle.addEventListener('click', () => {
-        isThai = !isThai;
-        langToggle.innerText = isThai ? 'TH' : 'EN';
-        document.querySelector('.logo-text p').innerText = isThai ? 'ระบบนำทางในอาคารบร.3' : 'LC3 Building Navigation';
-        searchInput.placeholder = isThai ? 'ค้นหาห้องเรียน' : 'Search rooms';
-        document.querySelector('.tag-label').innerText = isThai ? 'แนะนำ:' : 'Suggest:';
-    });
+
+    // แก้งาน #4: แปลภาษาแบบจัดเต็มทั้งระบบ
+    const i18n = {
+        th: {
+            searchPlaceholder: 'ค้นหาห้อง, วิชา, งาน…',
+            fromPlaceholder: 'จุดเริ่มต้น…',
+            toPlaceholder: 'ปลายทาง…',
+            navigateBtn: '<i class="fas fa-route"></i> นำทาง',
+            routeFrom: 'จาก',
+            routeTo: 'ไปยัง',
+            distance: 'ระยะ',
+            steps: 'ขั้นตอน',
+            showDetail: 'แสดงรายละเอียด',
+            hideDetail: 'ย่อรายละเอียด',
+            close: 'ปิด',
+            noResult: 'ไม่พบข้อมูล',
+            loading: 'กำลังค้นหาเส้นทาง…',
+            eventTitle: 'กิจกรรมวันนี้',
+            walkStraight: 'เดินตรงไป',
+            turnLeft: 'เลี้ยวซ้าย',
+            turnRight: 'เลี้ยวขวา',
+            uTurn: 'กลับหลัง',
+            stairsUp: 'ขึ้นบันไดไปชั้น',
+            stairsDown: 'ลงบันไดไปชั้น',
+            useStairs: 'ใช้บันได',
+            meters: 'เมตร',
+            stepOf: 'จาก',
+            step: 'ขั้นตอนที่',
+            arrived: 'ถึงแล้ว!',
+            arrivedAt: 'จุดหมาย',
+            next: 'ถัดไป',
+            lastStep: 'ขั้นตอนสุดท้าย',
+            prev: 'ก่อนหน้า',
+            start: 'เริ่มต้น'
+        },
+        en: {
+            searchPlaceholder: 'Search room, course, event…',
+            fromPlaceholder: 'Starting point…',
+            toPlaceholder: 'Destination…',
+            navigateBtn: '<i class="fas fa-route"></i> Navigate',
+            routeFrom: 'From',
+            routeTo: 'To',
+            distance: 'Distance',
+            steps: 'Steps',
+            showDetail: 'Show details',
+            hideDetail: 'Hide details',
+            close: 'Close',
+            noResult: 'Not found',
+            loading: 'Finding route…',
+            eventTitle: "Today's events",
+            walkStraight: 'Walk straight',
+            turnLeft: 'Turn left',
+            turnRight: 'Turn right',
+            uTurn: 'U-turn',
+            stairsUp: 'Go up stairs to floor',
+            stairsDown: 'Go down stairs to floor',
+            useStairs: 'Use stairs',
+            meters: 'm',
+            stepOf: 'of',
+            step: 'Step',
+            arrived: 'Arrived!',
+            arrivedAt: 'Destination',
+            next: 'Next',
+            lastStep: 'Last step',
+            prev: 'Prev',
+            start: 'Start'
+        }
+    };
+    window.__i18n = i18n;
+    window.__lang = 'th';
+
+    function applyLang(lang) {
+        const t = i18n[lang];
+        window.__lang = lang;
+        if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+        const startQ = document.getElementById('start-query');
+        const goalQ  = document.getElementById('goal-query');
+        if (startQ) startQ.placeholder = t.fromPlaceholder;
+        if (goalQ)  goalQ.placeholder  = t.toPlaceholder;
+        const navBtn = document.getElementById('btn-navigate');
+        if (navBtn) navBtn.innerHTML = t.navigateBtn;
+        
+        // สั่งให้ addon refresh ภาษา (ชื่อห้อง, route details)
+        if (window.__cs232SearchAddon && typeof window.__cs232SearchAddon.refreshLang === 'function') {
+            window.__cs232SearchAddon.refreshLang();
+        }
+    }
+
+    if (langToggle) {
+        langToggle.addEventListener('click', () => {
+            isThai = !isThai;
+            const lang = isThai ? 'th' : 'en';
+            langToggle.innerText = isThai ? 'TH' : 'EN';
+            applyLang(lang);
+        });
+    }
 
     searchInput.addEventListener('input', debounce(function () {
         const query = this.value.trim().toLowerCase();
-        if (query.length > 0) {
-            clearSearchBtn.style.display = 'block';
-            searchTags.style.display = 'none';
-            const results = mockData.filter(item => item.SearchTerm.toLowerCase().includes(query));
-            showSearchResults(results);
-        } else {
+        if (query.length === 0) {
             closeBottomSheet();
+            return;
         }
+        clearSearchBtn.style.display = 'block';
+
+        const data = window.mockData || [];
+        if (data.length === 0) {
+            sheetContent.innerHTML = `<div style="text-align:center;padding:24px;color:var(--on-surface-3);"><i class="fas fa-spinner fa-spin"></i> กำลังโหลดข้อมูล…</div>`;
+            bottomSheet.classList.add('show');
+            return;
+        }
+        const results = data.filter(item =>
+            (item.SearchTerm || '').toLowerCase().includes(query) ||
+            (item.RoomNumber || '').toLowerCase().includes(query) ||
+            (item.RoomName || '').toLowerCase().includes(query)
+        ).slice(0, 10);
+        showSearchResults(results, query);
     }, 200));
 
-    // เปิดปิด search แบบเดิม: ใช้เฉพาะกรณีที่มี toggleSearchBtn อยู่ใน HTML
     const toggleSearchBtn = document.getElementById('toggleSearchBtn');
     const searchPanelContent = document.getElementById('search-panel-content');
 
@@ -394,47 +443,75 @@ document.addEventListener('DOMContentLoaded', function () {
             toggleSearchBtn.classList.toggle('rotated');
         });
     }
-    function showSearchResults(results) {
+    
+    function showSearchResults(results, query) {
         if (!bottomSheet || !sheetContent) return;
-        let html = `<div class="search-header">ผลลัพธ์</div>`;
-        if (results.length === 0) html += `<div class="result-item">ไม่พบข้อมูล</div>`;
-        else {
+        const catIcon  = { event: 'fa-calendar-alt', course: 'fa-book-open', room: 'fa-door-open', facility: 'fa-info-circle', stairs: 'fa-stairs', entrance: 'fa-sign-in-alt' };
+        const catClass = { event: 'cat-event', course: 'cat-course', stairs: 'cat-stairs', entrance: 'cat-entrance' };
+        
+        // แปลง category labels
+        const t = window.__i18n?.[window.__lang || 'th'] || {};
+        const catLabel = window.__lang === 'en' 
+            ? { event: 'Event', course: 'Course', room: 'Room', facility: 'Facility', stairs: 'Stairs', entrance: 'Entrance' }
+            : { event: 'กิจกรรม', course: 'วิชา', room: 'ห้อง', facility: 'สิ่งอำนวยความสะดวก', stairs: 'บันได', entrance: 'ทางเข้า' };
+
+        if (results.length === 0) {
+            sheetContent.innerHTML = `
+                <div class="result-empty">
+                    <i class="fas fa-search-minus"></i>
+                    <p>${t.noResult || 'ไม่พบข้อมูล'} "<b>${query}</b>"</p>
+                </div>`;
+        } else {
+            const hi = (s) => s ? s.replace(new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'),
+                m => `<mark style="background:var(--blue-light);color:var(--blue);border-radius:2px;padding:0 2px;font-style:normal">${m}</mark>`) : (s || '');
+            let html = `<div class="search-header">${results.length} ผลลัพธ์</div>`;
             results.forEach(item => {
+                const cat   = item.category || item.type || 'room';
+                const icon  = catIcon[cat]  || 'fa-map-marker-alt';
+                const cls   = catClass[cat] || '';
+                const label = catLabel[cat] || (window.__lang === 'en' ? 'Location' : 'สถานที่');
+                const sub   = item.RoomName ? item.RoomName : (label + (item.floor ? ` · ${window.__lang === 'en' ? 'Floor' : 'ชั้น'} ${item.floor}` : ''));
                 html += `
-                    <div class="result-item" onclick="selectRoom('${item.RoomNumber}', ${item.X}, ${item.Y})">
-                        <b>${item.SearchTerm}</b><br><small>${item.RoomName}</small>
+                    <div class="result-item" onclick="selectRoom('${item.RoomNumber}',${item.X},${item.Y},'${item.node_id||''}')">
+                        <div class="result-icon ${cls}"><i class="fas ${icon}"></i></div>
+                        <div class="result-text">
+                            <b>${hi(item.RoomNumber || item.SearchTerm)}</b>
+                            <small>${hi(sub)}</small>
+                        </div>
+                        <i class="fas fa-chevron-right result-chevron"></i>
                     </div>`;
             });
+            sheetContent.innerHTML = html;
         }
-        sheetContent.innerHTML = html;
         bottomSheet.classList.add('show');
     }
 
-    window.selectRoom = function (roomName, x, y) {
-        
+    window.selectRoom = function (roomName, x, y, nodeId) {
         searchInput.value = roomName;
-        
-        
-        setInitialLocation(x, y, Math.max(getMinScale(), 2.8));
+        if (x && y) setInitialLocation(x, y, Math.max(getMinScale(), 2.8));
 
-        
         const goalInput = document.getElementById('goal-query');
         if (goalInput) {
-            goalInput.value = roomName; 
+            goalInput.value = roomName;
+            if (nodeId) goalInput.dataset.nodeId = nodeId;
         }
-
-       
         const startInput = document.getElementById('start-query');
-        if (startInput) {
-            setTimeout(() => {
-                startInput.focus();
-            }, 300);
+        if (startInput && !startInput.value.trim()) {
+            setTimeout(() => startInput.focus(), 200);
         }
 
+        const t = window.__i18n?.[window.__lang || 'th'] || {};
+        const pinHint = window.__lang === 'en' ? 'Pinned · Set starting point to navigate' : 'ปักหมุดแล้ว · ระบุจุดเริ่มต้นเพื่อนำทาง';
         sheetContent.innerHTML = `
-            <div style="text-align:center; padding: 20px;">
-                <h3 style="color: #1a4d8c;"><i class="fas fa-map-pin"></i> จุดหมาย: ห้อง ${roomName}</h3>
-                <p style="color: #666; margin-top: 10px;">กรุณาระบุ <b>FROM</b> เพื่อเริ่มค้นหาเส้นทาง</p>
+            <div class="pin-confirm">
+                <div class="pin-confirm__icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div class="pin-confirm__body">
+                    <div class="pin-confirm__name">${roomName}</div>
+                    <div class="pin-confirm__hint">${pinHint}</div>
+                </div>
+                <button class="pin-confirm__close" onclick="document.getElementById('bottomSheet').classList.remove('show')">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>`;
         bottomSheet.classList.add('show');
     }
@@ -444,11 +521,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const marker = document.createElement('div');
         marker.id = 'marker';
         marker.style.position = 'absolute';
-
-        // ใช้เป็น px แทน
         marker.style.top = y + 'px';
         marker.style.left = x + 'px';
-
         marker.style.width = '15px';
         marker.style.height = '15px';
         marker.style.background = 'red';
@@ -477,116 +551,11 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => sheetContent.innerHTML = '', 300);
     }
 
-    
-    // ฟังก์ชันนำทาง เชื่อม Backend Gateway
-    window.navigateUser = async function(event) {
-        if (event) event.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บ
-
-        const startInputNode = document.getElementById('start-query');
-        const goalInputNode = document.getElementById('goal-query');
-
-        if (!startInputNode.value.trim()) {
-            startInputNode.focus();
-            return;
-        }
-        if (!goalInputNode.value.trim()) {
-            goalInputNode.focus();
-            return;
-        }
-
-        if (sheetOverlay) sheetOverlay.classList.add('show');
-
-        //พับเก็บแถบค้นหาเมื่อนำทาง
-        const searchPanelContent = document.getElementById('search-panel-content');
-        const searchBox = document.getElementById('single-search-box');
-        
-        if (searchPanelContent && !searchPanelContent.classList.contains('collapsed')) {
-            // ดักจับไอคอนลูกศร
-            const chevronIcon = searchBox ? searchBox.querySelector('.fa-chevron-up, .fa-chevron-down') : null;
-            
-            if (chevronIcon) {
-                // ถ้าเจอ ให้สั่งคอมพิวเตอร์จำลองการกดปุ่มที่ครอบลูกศรนั้นอยู่เลย!
-                const btn = chevronIcon.closest('button') || chevronIcon.parentElement;
-                if (btn) btn.click();
-            } else {
-                // ถ้าหาไม่เจอจริงๆ ค่อยบังคับพับ
-                searchPanelContent.classList.add('collapsed');
-            }
-        }
-
-        if (window.__cs232SearchAddon && typeof window.__cs232SearchAddon.navigateUser === 'function') {
-            return window.__cs232SearchAddon.navigateUser(event);
-        }
-
-        // ดึง UI แถบด้านล่างมาเตรียมแสดงข้อความ
-
-        sheetContent.innerHTML = `<div style="text-align:center; padding: 20px;">กำลังค้นหาเส้นทาง... 🔍</div>`;
-        bottomSheet.classList.add('show');
-        if (sheetOverlay) sheetOverlay.classList.add('show');
-
-        try {
-            let url = `${String(window.CS232_API_BASE || '').replace(/\/$/, '')}/?q=${encodeURIComponent(goalInput)}`;
-            
-            if (startInput) {
-                url += `&start=${encodeURIComponent(startInput)}`; 
-            }
-            
-            const response = await fetch(url);
-
-            const data = await response.json();
-
-            if (data.status === "success") {
-                let html = `<div style="padding: 15px; max-height: 400px; overflow-y: auto;">`;
-                html += `<h3 style="margin-bottom: 15px; color: #1a4d8c;">
-                            <i class="fas fa-route"></i> เส้นทางไป ${data.search_result.target}
-                         </h3>`;
-                
-
-                if (data.instructions && data.instructions.length > 0) {
-                    html += `<ul style="list-style: none; padding: 0; margin: 0;">`;
-                    data.instructions.forEach((inst, index) => {
-                        let icon = "fa-arrow-up"; 
-                        if (inst.action === "turn_left") icon = "fa-undo";
-                        if (inst.action === "turn_right") icon = "fa-redo";
-                        if (inst.action === "stairs_up" || inst.action === "stairs_down") icon = "fa-stairs";
-
-                        html += `<li style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center;">
-                                    <span style="background: #1a4d8c; color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; margin-right: 15px; font-size: 12px; flex-shrink: 0;">${index + 1}</span>
-                                    <i class="fas ${icon}" style="color: #666; margin-right: 15px; width: 16px; text-align: center;"></i>
-                                    <span style="font-size: 14px;">${inst.instruction}</span>
-                                 </li>`;
-                    });
-                    html += `</ul>`;
-                } else {
-                    html += `<p style="text-align:center; color: #28a745;">คุณมาถึงจุดหมายแล้ว!</p>`;
-                }
-                html += `</div>`;
-                
-                sheetContent.innerHTML = html;
-                console.log("✅ Route Nodes:", data.route);
-
-            } else {
-                sheetContent.innerHTML = `<div style="text-align:center; padding: 20px; color: #dc3545;">
-                                            <i class="fas fa-exclamation-circle" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                                            ${data.message || "ไม่พบเส้นทาง"}
-                                          </div>`;
-            }
-
-        } catch (error) {
-            console.error("API Error:", error);
-            sheetContent.innerHTML = `<div style="text-align:center; padding: 20px; color: #dc3545;">
-                                        <i class="fas fa-server" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                                        ไม่สามารถเชื่อมต่อ Backend ได้<br>
-                                        <small style="color: #666;">กรุณาตรวจสอบการตั้งค่า API Gateway ใน Frontend/config.js</small>
-                                      </div>`;
-        }
-    };
-
     let isMapLoaded = false;
     window.addEventListener('load', () => {
         if (!isMapLoaded) {
             isMapLoaded = true;
-            initMap(); // คราวนี้มันจะมองเห็น initMap แล้ว!
+            initMap(); 
         }
     })
 });

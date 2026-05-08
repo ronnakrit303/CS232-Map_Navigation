@@ -1,6 +1,6 @@
 /*
  * Task4 / US1 Add-on: Room Search UI
- * Adds room search, FROM/TO autocomplete, backend pathfinding, and directions.
+ * Updated version
  */
 (function () {
     'use strict';
@@ -11,7 +11,9 @@
         graph: null,
         nodes: [],
         searchItems: [],
-        currentRoutePath: []
+        currentRoutePath: [],
+        stepInstructions: [],
+        currentStepIndex: 0
     };
 
     window.__cs232SearchAddon = window.__cs232SearchAddon || {};
@@ -23,23 +25,35 @@
 
     function displayNodeName(node) {
         if (!node) return '';
+        const lang = window.__lang || 'th';
+        if (lang === 'en' && node.name_en) return node.name_en;
         return node.name || String(node.id || '').replace(/^LC3_/, '').replace(/^F2_/, '');
     }
 
     function itemFromNode(node, prefixText) {
-        const room = displayNodeName(node);
-        const label = node.label || node.type || 'Location';
-        const floor = node.floor ? `ชั้น ${node.floor}` : '';
+        const lang = window.__lang || 'th';
+        const roomName = (lang === 'en' && node.name_en) ? node.name_en : (node.name || '');
+        const room = roomName || String(node.id || '').replace(/^LC3_/, '').replace(/^F2_/, '');
+
+        let label = node.label || node.type || 'Location';
+        if (lang === 'en') {
+            const typeDict = { 'ห้อง': 'Room', 'บันได': 'Stairs', 'ทางเข้า': 'Entrance', 'สิ่งอำนวยความสะดวก': 'Facility', 'room': 'Room', 'stairs': 'Stairs', 'entrance': 'Entrance', 'facility': 'Facility' };
+            label = typeDict[label.toLowerCase()] || label;
+        }
+
+        const floorText = node.floor ? (lang === 'en' ? `Floor ${node.floor}` : `ชั้น ${node.floor}`) : '';
         const title = prefixText ? `${prefixText} ${room}` : room;
+        
         return {
-            category: 'room',
-            SearchTerm: `${title} ${label} ${floor}`.trim(),
+            category: node.type || 'room',
+            SearchTerm: `${title} ${label} ${floorText}`.trim(),
             RoomNumber: room,
-            RoomName: `${label}${floor ? ' · ' + floor : ''}`,
+            RoomName: `${label}${floorText ? ' · ' + floorText : ''}`,
             node_id: node.id,
             X: Number(node.x),
             Y: Number(node.y),
-            floor: node.floor
+            floor: node.floor,
+            originalNode: node
         };
     }
 
@@ -54,6 +68,7 @@
 
         return state.nodes.find(node => normalize(node.id) === normalize(value)) ||
             state.nodes.find(node => normalize(node.name) === query) ||
+            state.nodes.find(node => normalize(node.name_en) === query) ||
             state.nodes.find(node => normalize(node.id).endsWith('_' + query)) ||
             state.nodes.find(node => normalize(node.id).endsWith(query)) ||
             null;
@@ -65,6 +80,37 @@
         return state.searchItems
             .filter(item => normalize(`${item.SearchTerm} ${item.RoomNumber} ${item.RoomName}`).includes(q))
             .slice(0, limit);
+    }
+
+    function setEventFabVisible(visible) {
+        const fab = document.getElementById('eventFab');
+        if (!fab) return;
+        if (visible) fab.classList.remove('hidden');
+        else fab.classList.add('hidden');
+    }
+
+    function getSheet() {
+        return {
+            sheet: document.getElementById('bottomSheet'),
+            content: document.getElementById('sheetContent')
+        };
+    }
+
+    function openSheet() {
+        const { sheet } = getSheet();
+        if (sheet) {
+            sheet.classList.add('show');
+            setEventFabVisible(false);
+        }
+    }
+
+    function closeSheet() {
+        const { sheet, content } = getSheet();
+        if (sheet) {
+            sheet.classList.remove('show');
+            setEventFabVisible(true);
+            setTimeout(() => { if (content) content.innerHTML = ''; }, 300);
+        }
     }
 
     function renderSuggestionList(input, listElement) {
@@ -100,10 +146,7 @@
         const startList = document.getElementById('start-suggestions');
         const goalList = document.getElementById('goal-suggestions');
 
-        [
-            [startInput, startList],
-            [goalInput, goalList]
-        ].forEach(([input, list]) => {
+        [ [startInput, startList], [goalInput, goalList] ].forEach(([input, list]) => {
             if (!input || !list || input.dataset.roomAddonReady === 'true') return;
             input.dataset.roomAddonReady = 'true';
             input.addEventListener('input', () => {
@@ -174,14 +217,12 @@
 
     function setNavigateButtonLoading(isLoading) {
         const button = document.getElementById('btn-navigate');
+        const t = window.__i18n?.[window.__lang || 'th'] || {};
         if (!button) return;
         button.disabled = isLoading;
-        button.textContent = isLoading ? 'Finding route...' : 'Navigate';
-    }
-
-    function nodeTitle(nodeId) {
-        const node = findNodeByIdOrName(nodeId);
-        return node ? displayNodeName(node) : nodeId;
+        button.innerHTML = isLoading
+            ? `<i class="fas fa-spinner fa-spin"></i> ${t.loading || 'กำลังค้นหา…'}`
+            : (t.navigateBtn || '<i class="fas fa-route"></i> นำทาง');
     }
 
     function activeFloor() {
@@ -190,7 +231,7 @@
     }
 
     function clearRouteOverlay() {
-        document.querySelectorAll('.route-path-line, .route-node-marker').forEach(element => element.remove());
+        document.querySelectorAll('.route-path-line, .route-node-marker, .route-step-highlight').forEach(el => el.remove());
     }
 
     function drawRouteOnCurrentFloor(path) {
@@ -214,10 +255,19 @@
         svg.setAttribute('height', height);
         svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
+        const polylineBg = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polylineBg.setAttribute('points', routeNodes.map(node => `${node.x},${node.y}`).join(' '));
+        polylineBg.setAttribute('fill', 'none');
+        polylineBg.setAttribute('stroke', 'rgba(26,115,232,0.25)');
+        polylineBg.setAttribute('stroke-width', '12');
+        polylineBg.setAttribute('stroke-linecap', 'round');
+        polylineBg.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(polylineBg);
+
         const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
         polyline.setAttribute('points', routeNodes.map(node => `${node.x},${node.y}`).join(' '));
         polyline.setAttribute('fill', 'none');
-        polyline.setAttribute('stroke', '#0066cc');
+        polyline.setAttribute('stroke', '#1a73e8');
         polyline.setAttribute('stroke-width', '6');
         polyline.setAttribute('stroke-linecap', 'round');
         polyline.setAttribute('stroke-linejoin', 'round');
@@ -229,23 +279,32 @@
             marker.className = `route-node-marker ${index === 0 ? 'route-start-marker' : 'route-end-marker'}`;
             marker.style.left = `${node.x}px`;
             marker.style.top = `${node.y}px`;
-            marker.textContent = index === 0 ? 'A' : 'B';
+            marker.innerHTML = index === 0
+                ? '<i class="fas fa-circle-dot" style="font-size:11px"></i>'
+                : '<i class="fas fa-flag-checkered" style="font-size:11px"></i>';
             mapWrapper.appendChild(marker);
         });
     }
 
-    function renderRouteLoading(startNode, goalNode) {
-        const bottomSheet = document.getElementById('bottomSheet');
-        const sheetContent = document.getElementById('sheetContent');
-        if (!bottomSheet || !sheetContent) return;
+    function showStepHighlight(node) {
+        document.querySelectorAll('.route-step-highlight').forEach(el => el.remove());
+        if (!node) return;
 
-        sheetContent.innerHTML = `
-            <div class="calc-container">
-                <div class="calc-text">กำลังค้นหาเส้นทาง ${nodeTitle(startNode.id)} to ${nodeTitle(goalNode.id)}</div>
-                <div class="progress-wrapper"><div class="progress-bar" style="width: 70%;"></div></div>
-            </div>
-        `;
-        bottomSheet.classList.add('show');
+        const floor = activeFloor();
+        if (String(node.floor) !== floor) return;
+
+        const mapWrapper = document.getElementById('mapWrapper');
+        if (!mapWrapper) return;
+
+        const dot = document.createElement('div');
+        dot.className = 'route-step-highlight';
+        dot.style.left = `${node.x}px`;
+        dot.style.top = `${node.y}px`;
+        mapWrapper.appendChild(dot);
+
+        if (typeof setInitialLocation === 'function') {
+            setInitialLocation(node.x, node.y, null, false);
+        }
     }
 
     function edgeBetween(startId, endId) {
@@ -275,17 +334,17 @@
     function turnDirection(previousVector, nextVector) {
         const previousLength = Math.hypot(previousVector.x, previousVector.y);
         const nextLength = Math.hypot(nextVector.x, nextVector.y);
-        if (!previousLength || !nextLength) return { direction: 'straight', text: 'เดินตรง' };
+        if (!previousLength || !nextLength) return { direction: 'straight' };
 
         const dot = previousVector.x * nextVector.x + previousVector.y * nextVector.y;
         const cross = previousVector.x * nextVector.y - previousVector.y * nextVector.x;
         const angle = Math.atan2(cross, dot) * 180 / Math.PI;
         const absAngle = Math.abs(angle);
 
-        if (absAngle < 30) return { direction: 'straight', text: 'เดินตรง' };
-        if (absAngle > 150) return { direction: 'u_turn', text: 'กลับหลัง' };
-        if (angle > 0) return { direction: 'right', text: 'เลี้ยวขวา' };
-        return { direction: 'left', text: 'เลี้ยวซ้าย' };
+        if (absAngle < 30) return { direction: 'straight' };
+        if (absAngle > 150) return { direction: 'u_turn' };
+        if (angle > 0) return { direction: 'right' };
+        return { direction: 'left' };
     }
 
     function isStairSegment(startNode, endNode, edge) {
@@ -294,10 +353,11 @@
             startNode.type === 'stairs' && endNode.type === 'stairs' && startNode.floor !== endNode.floor;
     }
 
+    // แก้งาน #3 และ #6: รวมเส้นทางแบบตรงให้เป็นสเต็ปเดียว และแปลภาษา
     function buildRouteInstructions(path) {
         if (!Array.isArray(path) || path.length < 2) return [];
 
-        const instructions = [];
+        const rawInstructions = [];
         for (let index = 0; index < path.length - 1; index += 1) {
             const startId = path[index];
             const endId = path[index + 1];
@@ -309,23 +369,16 @@
             const distance = routeSegmentDistance(startNode, endNode, edge);
             let direction = 'straight';
             let action = 'walk';
-            let instruction = `เดินตรง ${distance} ม.`;
 
             if (isStairSegment(startNode, endNode, edge)) {
                 const startFloor = Number(startNode.floor || 0);
                 const endFloor = Number(endNode.floor || 0);
                 if ((edge && edge.type === 'up') || endFloor > startFloor) {
-                    direction = 'up';
-                    action = 'stairs_up';
-                    instruction = `ขึ้นบันไดไปชั้น ${endNode.floor}`;
+                    direction = 'up'; action = 'stairs_up';
                 } else if ((edge && edge.type === 'down') || endFloor < startFloor) {
-                    direction = 'down';
-                    action = 'stairs_down';
-                    instruction = `ลงบันไดไปชั้น ${endNode.floor}`;
+                    direction = 'down'; action = 'stairs_down';
                 } else {
-                    direction = 'stairs';
-                    action = 'stairs';
-                    instruction = 'ใช้บันได';
+                    direction = 'stairs'; action = 'stairs';
                 }
             } else if (index > 0) {
                 const previousNode = findNodeByIdOrName(path[index - 1]);
@@ -333,141 +386,295 @@
                     const turn = turnDirection(vectorBetweenNodes(previousNode, startNode), vectorBetweenNodes(startNode, endNode));
                     direction = turn.direction;
                     action = direction === 'straight' ? 'walk' : `turn_${direction}`;
-                    instruction = direction === 'straight'
-                        ? `เดินตรง ${distance} ม.`
-                        : `${turn.text} แล้วเดินต่อ ${distance} ม.`;
                 }
             }
 
-            instructions.push({
-                step: instructions.length + 1,
-                action,
-                direction,
-                instruction,
-                from_node: startId,
-                to_node: endId,
-                distance,
-                unit: 'm',
-                floor: startNode.floor
-            });
+            rawInstructions.push({ action, direction, from_node: startId, to_node: endId, distance, floor: startNode.floor });
         }
 
-        return instructions;
-    }
+        const mergedInstructions = [];
+        for (const inst of rawInstructions) {
+            if (mergedInstructions.length === 0) {
+                mergedInstructions.push(inst);
+                continue;
+            }
+            const last = mergedInstructions[mergedInstructions.length - 1];
+            if (inst.action === 'walk' && last.action === 'walk' && inst.floor === last.floor) {
+                last.to_node = inst.to_node;
+                last.distance = (last.distance || 0) + (inst.distance || 0);
+                last.distance = Math.round(last.distance * 10) / 10;
+            } else {
+                mergedInstructions.push(inst);
+            }
+        }
 
-    function hasUsefulInstructions(instructions) {
-        return Array.isArray(instructions) && instructions.length > 0 && instructions.every(item => {
-            const text = String(item.instruction || '');
-            return text && !text.includes('ไปยัง') && item.distance !== '' && item.distance !== undefined && Number.isFinite(Number(item.distance));
+        const t = window.__i18n?.[window.__lang || 'th'] || {};
+
+        mergedInstructions.forEach((inst, idx) => {
+            inst.step = idx + 1;
+            if (inst.action === 'walk') {
+                inst.instruction = `${t.walkStraight || 'เดินตรงไป'} ${inst.distance > 0 ? inst.distance + ' ' + (t.meters || 'เมตร') : ''}`.trim();
+            } else if (inst.action === 'turn_right') {
+                inst.instruction = t.turnRight || 'เลี้ยวขวา';
+            } else if (inst.action === 'turn_left') {
+                inst.instruction = t.turnLeft || 'เลี้ยวซ้าย';
+            } else if (inst.action === 'u_turn') {
+                inst.instruction = t.uTurn || 'กลับหลัง';
+            } else if (inst.action === 'stairs_up') {
+                inst.instruction = `${t.stairsUp || 'ขึ้นบันไดไปชั้น'} ${findNodeByIdOrName(inst.to_node)?.floor || ''}`;
+            } else if (inst.action === 'stairs_down') {
+                inst.instruction = `${t.stairsDown || 'ลงบันไดไปชั้น'} ${findNodeByIdOrName(inst.to_node)?.floor || ''}`;
+            }
         });
+
+        return mergedInstructions;
     }
 
-    function renderRouteResult(startNode, goalNode, pathfindingData, directionData) {
-        const bottomSheet = document.getElementById('bottomSheet');
-        const sheetContent = document.getElementById('sheetContent');
-        if (!bottomSheet || !sheetContent) return;
+    const actionMeta = {
+        walk:        { icon: 'fa-arrow-up',      cls: ''        },
+        turn_right:  { icon: 'fa-arrow-right',   cls: 'right'   },
+        turn_left:   { icon: 'fa-arrow-left',    cls: 'left'    },
+        u_turn:      { icon: 'fa-arrow-down',    cls: 'uturn'   },
+        stairs_up:   { icon: 'fa-stairs',        cls: 'stairs'  },
+        stairs_down: { icon: 'fa-stairs',        cls: 'stairs'  },
+        stairs:      { icon: 'fa-stairs',        cls: 'stairs'  },
+    };
 
-        const instructions = hasUsefulInstructions(directionData.instructions)
-            ? directionData.instructions
-            : buildRouteInstructions(pathfindingData.path);
-        const instructionItems = instructions.map(item => `
-            <li class="instruction-item">
-                <span class="instruction-step">${item.step}</span>
-                <div>
-                    <strong>${item.instruction}</strong>
-                    <small>${item.direction} · ${item.distance} ${item.unit || 'm'}</small>
-                </div>
-            </li>
-        `).join('');
+    function renderStepByStep(instructions, goalNode, startIndex) {
+        const idx = Math.max(0, Math.min(startIndex, instructions.length));
+        state.currentStepIndex = idx;
 
-        sheetContent.innerHTML = `
-            <div class="result-header">
-                <div class="route-title">
-                    <i class="fas fa-route"></i>
-                    <span>${nodeTitle(startNode.id)} to ${nodeTitle(goalNode.id)}</span>
-                    <span class="route-dist">${directionData.total_distance || pathfindingData.total_distance} m</span>
+        const isArrived = idx >= instructions.length;
+        const total = instructions.length;
+        const t = window.__i18n?.[window.__lang || 'th'] || {};
+
+        if (!isArrived) {
+            const currentInst = instructions[idx];
+            const targetNode = findNodeByIdOrName(currentInst.to_node);
+            if (targetNode) showStepHighlight(targetNode);
+        } else {
+            showStepHighlight(goalNode);
+        }
+
+        document.querySelectorAll('.nav-step').forEach((el, i) => {
+            el.classList.toggle('current-step-highlight', i === idx && !isArrived);
+        });
+
+        const currentStepEl = document.getElementById('rs-current-step');
+        const stepNumEl = document.getElementById('rs-step-num');
+        const stepTextEl = document.getElementById('rs-step-text');
+        const stepIconEl = document.getElementById('rs-step-icon');
+        const prevBtn = document.getElementById('rs-prev-btn');
+        const nextBtn = document.getElementById('rs-next-btn');
+        const badgeEl = document.getElementById('rs-step-badge-count');
+
+        if (isArrived) {
+            if (currentStepEl) currentStepEl.style.background = '#188038';
+            if (stepNumEl) stepNumEl.textContent = t.arrived || 'ถึงแล้ว!';
+            if (stepTextEl) stepTextEl.textContent = displayNodeName(goalNode);
+            if (stepIconEl) stepIconEl.className = 'fas fa-flag-checkered';
+            if (nextBtn) {
+                // แก้งาน #2: ปลดล็อคปุ่มถึงแล้ว
+                nextBtn.disabled = false;
+                nextBtn.innerHTML = `<i class="fas fa-flag-checkered"></i> ${t.arrived || 'ถึงแล้ว!'}`;
+            }
+        } else {
+            const inst = instructions[idx];
+            const meta = actionMeta[inst.action] || actionMeta.walk;
+            if (currentStepEl) currentStepEl.style.background = '';
+            if (stepNumEl) stepNumEl.textContent = `${t.step || 'ขั้นตอนที่'} ${idx + 1} ${t.stepOf || 'จาก'} ${total}`;
+            if (stepTextEl) stepTextEl.textContent = inst.instruction;
+            if (stepIconEl) stepIconEl.className = `fas ${meta.icon}`;
+            if (nextBtn) {
+                nextBtn.disabled = false;
+                nextBtn.innerHTML = idx < total - 1
+                    ? `${t.next || 'ถัดไป'} <i class="fas fa-chevron-right"></i>`
+                    : `${t.lastStep || 'ขั้นตอนสุดท้าย'} <i class="fas fa-flag-checkered"></i>`;
+            }
+        }
+
+        if (prevBtn) {
+            prevBtn.disabled = idx === 0;
+            prevBtn.innerHTML = `<i class="fas fa-chevron-left"></i> ${t.prev || 'ก่อนหน้า'}`;
+        }
+        if (badgeEl) badgeEl.textContent = isArrived ? `${total}/${total}` : `${idx + 1}/${total}`;
+    }
+
+    function renderRouteResult(startNode, goalNode, pathfindingData) {
+        const { sheet, content } = getSheet();
+        if (!sheet || !content) return;
+
+        const t = window.__i18n?.[window.__lang || 'th'] || {};
+        const instructions = buildRouteInstructions(pathfindingData.path);
+
+        state.stepInstructions = instructions;
+        state.currentStepIndex = 0;
+
+        const total = instructions.length;
+
+        const stepsHtml = instructions.map((item, idx) => {
+            const meta = actionMeta[item.action] || actionMeta.walk;
+            const isLast = idx === instructions.length - 1;
+            return `
+            <li class="nav-step ${meta.cls}" data-step-index="${idx}" id="nav-step-${idx}">
+                <div class="nav-step__line-wrap">
+                    <div class="nav-step__icon">
+                        <i class="fas ${meta.icon}"></i>
+                    </div>
+                    ${!isLast ? '<div class="nav-step__connector"></div>' : ''}
                 </div>
-                <div class="route-subtitle">${pathfindingData.path.map(nodeTitle).join(' -> ')}</div>
-                <div class="route-actions">
-                    <button type="button" class="route-toggle-btn" id="routeToggleBtn">
-                        <i class="fas fa-chevron-down"></i>
-                        <span>ย่อรายละเอียด</span>
-                    </button>
-                    <button type="button" class="route-close-btn" id="routeCloseBtn">
-                        <i class="fas fa-times"></i>
-                        <span>ปิด</span>
-                    </button>
+                <div class="nav-step__body">
+                    <div class="nav-step__num">${t.step || 'ขั้นตอนที่'} ${idx + 1}</div>
+                    <div class="nav-step__text">${item.instruction}</div>
+                </div>
+            </li>`;
+        }).join('');
+
+        const arrivedHtml = `
+            <li class="nav-step nav-step--arrived" id="nav-step-${total}">
+                <div class="nav-step__line-wrap">
+                    <div class="nav-step__icon"><i class="fas fa-flag-checkered"></i></div>
+                </div>
+                <div class="nav-step__body">
+                    <div class="nav-step__num">${t.arrivedAt || 'จุดหมาย'}</div>
+                    <div class="nav-step__text">${displayNodeName(goalNode)}</div>
+                </div>
+            </li>`;
+
+        const firstInst = instructions[0];
+        const firstMeta = firstInst ? (actionMeta[firstInst.action] || actionMeta.walk) : actionMeta.walk;
+
+        // แก้งาน #5: เอา dots และ tip ด้านล่างออกทั้งหมด
+        content.innerHTML = `
+            <div class="rs-dest-row">
+                <i class="fas fa-location-dot rs-dest-icon"></i>
+                <span class="rs-dest-label">${displayNodeName(goalNode)}</span>
+                <button class="rs-close-btn" id="rs-close-btn" title="${t.close || 'ปิด'}">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="rs-step-badge">
+                <span class="rs-step-badge__label"><i class="fas fa-shoe-prints" style="margin-right:5px"></i>${total} ${t.steps || 'ขั้นตอน'}</span>
+                <span class="rs-step-badge__count" id="rs-step-badge-count">1/${total}</span>
+            </div>
+
+            <div class="rs-current-step" id="rs-current-step">
+                <div class="rs-current-step__icon">
+                    <i class="fas ${firstMeta.icon}" id="rs-step-icon"></i>
+                </div>
+                <div class="rs-current-step__body">
+                    <div class="rs-current-step__num" id="rs-step-num">${t.step || 'ขั้นตอนที่'} 1 ${t.stepOf || 'จาก'} ${total}</div>
+                    <div class="rs-current-step__text" id="rs-step-text">${firstInst ? firstInst.instruction : (t.start || 'เริ่มต้น')}</div>
                 </div>
             </div>
-            <div class="route-details" id="routeDetails">
-                <div class="route-stats">
-                    <span>${pathfindingData.path.length} nodes</span>
-                    <span>${instructions.length} steps</span>
-                </div>
-                <ol class="instruction-list">${instructionItems}</ol>
+
+            <div class="rs-step-nav">
+                <button class="rs-step-prev" id="rs-prev-btn" disabled>
+                    <i class="fas fa-chevron-left"></i> ${t.prev || 'ก่อนหน้า'}
+                </button>
+                <button class="rs-step-next" id="rs-next-btn">
+                    ${total > 1 ? `${t.next || 'ถัดไป'} <i class="fas fa-chevron-right"></i>` : `${t.lastStep || 'ขั้นตอนสุดท้าย'} <i class="fas fa-flag-checkered"></i>`}
+                </button>
+            </div>
+
+            <div class="nav-steps-wrap collapsed" id="navStepsWrap">
+                <ol class="nav-steps-list">
+                    ${stepsHtml}
+                    ${arrivedHtml}
+                </ol>
+            </div>
+
+            <div class="route-btn-row" id="routeBtnRow">
+                <button class="route-btn route-btn--toggle" id="routeToggleBtn">
+                    <i class="fas fa-list-ol"></i>
+                    <span>${t.showDetail || 'ดูขั้นตอนทั้งหมด'}</span>
+                </button>
             </div>
         `;
 
-        const routeToggleBtn = document.getElementById('routeToggleBtn');
-        const routeCloseBtn = document.getElementById('routeCloseBtn');
-        const routeDetails = document.getElementById('routeDetails');
+        const prevBtn = document.getElementById('rs-prev-btn');
+        const nextBtn = document.getElementById('rs-next-btn');
+        const closeBtn = document.getElementById('rs-close-btn');
+        const toggleBtn = document.getElementById('routeToggleBtn');
+        const stepsWrap = document.getElementById('navStepsWrap');
+        const btnRow = document.getElementById('routeBtnRow');
 
-        if (routeToggleBtn && routeDetails) {
-            routeToggleBtn.addEventListener('click', () => {
-                const isCollapsed = routeDetails.classList.toggle('collapsed');
-                const icon = routeToggleBtn.querySelector('i');
-                const label = routeToggleBtn.querySelector('span');
-                if (icon) icon.className = isCollapsed ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
-                if (label) label.textContent = isCollapsed ? 'แสดงรายละเอียด' : 'ย่อรายละเอียด';
+        prevBtn && prevBtn.addEventListener('click', () => {
+            if (state.currentStepIndex > 0) {
+                renderStepByStep(instructions, goalNode, state.currentStepIndex - 1);
+            }
+        });
+
+        // แก้งาน #2: หากเป็นสเต็ปสุดท้าย (ปุ่มถึงแล้ว) ให้ล้างเส้นทางเลย
+        nextBtn && nextBtn.addEventListener('click', () => {
+            if (state.currentStepIndex < instructions.length) {
+                renderStepByStep(instructions, goalNode, state.currentStepIndex + 1);
+            } else {
+                closeSheet();
+                clearRouteOverlay();
+                state.currentRoutePath = [];
+                state.stepInstructions = [];
+            }
+        });
+
+        content.querySelectorAll('.nav-step[data-step-index]').forEach(el => {
+            el.addEventListener('click', () => {
+                const stepIdx = parseInt(el.dataset.stepIndex, 10);
+                if (!isNaN(stepIdx)) renderStepByStep(instructions, goalNode, stepIdx);
             });
-        }
+        });
 
-        if (routeCloseBtn) {
-            routeCloseBtn.addEventListener('click', () => {
-                bottomSheet.classList.remove('show');
-            });
-        }
+        toggleBtn && toggleBtn.addEventListener('click', () => {
+            const isNowCollapsed = stepsWrap.classList.toggle('collapsed');
+            const icon  = toggleBtn.querySelector('i');
+            const label = toggleBtn.querySelector('span');
+            if (icon)  icon.className  = isNowCollapsed ? 'fas fa-list-ol' : 'fas fa-chevron-up';
+            if (label) label.textContent = isNowCollapsed
+                ? (t.showDetail || 'ดูขั้นตอนทั้งหมด')
+                : (t.hideDetail || 'ย่อขั้นตอน');
+            if (btnRow) btnRow.classList.toggle('sticky', !isNowCollapsed);
+        });
 
-        bottomSheet.classList.add('show');
+        closeBtn && closeBtn.addEventListener('click', () => {
+            closeSheet();
+            clearRouteOverlay();
+            state.currentRoutePath = [];
+            state.stepInstructions = [];
+        });
+
+        openSheet();
+        renderStepByStep(instructions, goalNode, 0);
+    }
+
+    function renderRouteLoading() {
+        const { content } = getSheet();
+        const t = window.__i18n?.[window.__lang || 'th'] || {};
+        if (!content) return;
+        content.innerHTML = `
+            <div class="calc-container">
+                <div class="calc-spinner"></div>
+                <div class="calc-text">${t.loading || 'กำลังค้นหาเส้นทาง…'}</div>
+            </div>`;
+        openSheet();
     }
 
     function renderRouteError(message) {
-        const bottomSheet = document.getElementById('bottomSheet');
-        const sheetContent = document.getElementById('sheetContent');
-        if (!bottomSheet || !sheetContent) return;
-
-        sheetContent.innerHTML = `
+        const { content } = getSheet();
+        if (!content) return;
+        content.innerHTML = `
             <div class="route-error">
                 <strong>หาเส้นทางไม่สำเร็จ</strong>
                 <p>${message}</p>
-            </div>
-        `;
-        bottomSheet.classList.add('show');
+            </div>`;
+        openSheet();
     }
 
     async function requestRoute(startNode, goalNode) {
         const endpoint = window.CS232_ROUTE_ENDPOINT || '/route';
         const pathfindingUrl = apiUrl(`${endpoint}?start=${encodeURIComponent(startNode.id)}&end=${encodeURIComponent(goalNode.id)}`);
         const pathfindingData = await fetchJson(pathfindingUrl);
-
-        let directionData;
-        try {
-            directionData = await fetchJson(apiUrl('/direction'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ path: pathfindingData.path })
-            });
-        } catch (error) {
-            console.warn('[Task2/US5] Direction API failed, using simple path result:', error);
-            directionData = {
-                status: 'success',
-                total_distance: pathfindingData.total_distance,
-                unit: pathfindingData.unit || 'm',
-                instructions: buildRouteInstructions(pathfindingData.path)
-            };
-        }
-
-        return { pathfindingData, directionData };
+        return { pathfindingData };
     }
 
     window.navigateUser = async function navigateUser(event) {
@@ -484,10 +691,10 @@
 
         try {
             setNavigateButtonLoading(true);
-            renderRouteLoading(startNode, targetNode);
-            const { pathfindingData, directionData } = await requestRoute(startNode, targetNode);
+            renderRouteLoading();
+            const { pathfindingData } = await requestRoute(startNode, targetNode);
             state.currentRoutePath = pathfindingData.path;
-            renderRouteResult(startNode, targetNode, pathfindingData, directionData);
+            renderRouteResult(startNode, targetNode, pathfindingData);
             drawRouteOnCurrentFloor(pathfindingData.path);
         } catch (error) {
             console.error('[Task2/US5] Navigation failed:', error);
@@ -505,6 +712,25 @@
     };
     window.__cs232SearchAddon.makeItemFromNode = itemFromNode;
 
+    // แก้งาน #4 (ต่อ): ฟังก์ชัน Refresh ภาษา อัปเดตรายการและคำแนะนำใหม่ทั้งหมดเมื่อสลับ EN/TH
+    window.__cs232SearchAddon.refreshLang = function() {
+        if (!state.nodes || state.nodes.length === 0) return;
+        
+        state.searchItems = state.nodes
+            .filter(node => node && node.x !== undefined && node.y !== undefined)
+            .map(node => itemFromNode(node));
+        rebuildMockData();
+
+        if (state.currentRoutePath && state.currentRoutePath.length > 0) {
+            const startNode = findNodeByIdOrName(state.currentRoutePath[0]);
+            const goalNode = findNodeByIdOrName(state.currentRoutePath[state.currentRoutePath.length - 1]);
+            const t = window.__i18n?.[window.__lang || 'th'] || {};
+            
+            // Re-render ด้วยภาษาใหม่โดยไม่ต้องโหลด API ใหม่
+            renderRouteResult(startNode, goalNode, { path: state.currentRoutePath });
+        }
+    };
+
     async function initRoomSearchAddon() {
         try {
             const response = await fetch(GRAPH_URL);
@@ -517,9 +743,19 @@
             rebuildMockData();
             attachFromToAutocomplete();
             attachPanelToggleIfMissing();
+
             document.querySelectorAll('.floor-btn').forEach(button => {
-                button.addEventListener('click', () => setTimeout(() => drawRouteOnCurrentFloor(state.currentRoutePath), 50));
+                button.addEventListener('click', () => {
+                    setTimeout(() => {
+                        drawRouteOnCurrentFloor(state.currentRoutePath);
+                        if (state.stepInstructions && state.stepInstructions.length > 0) {
+                            // สั่งให้ไฮไลต์บนแผนที่ทำงานอีกครั้งเมื่อเปลี่ยนชั้น
+                            renderStepByStep(state.stepInstructions, null, state.currentStepIndex);
+                        }
+                    }, 50);
+                });
             });
+
             document.dispatchEvent(new CustomEvent('cs232:room-search-ready'));
         } catch (error) {
             console.error('[Task4/US1] Room search add-on failed:', error);
