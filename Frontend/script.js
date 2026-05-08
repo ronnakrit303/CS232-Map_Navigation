@@ -494,14 +494,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (x && y) setInitialLocation(x, y, Math.max(getMinScale(), 2.8), true, floor);
 
+        // เช็คหน้าต่างค้นหา (Search Panel) ถ้าพับอยู่ให้กางออก
+        const searchPanelContent = document.getElementById('search-panel-content');
+        const toggleBtn = document.querySelector('.addon-search-toggle') || document.getElementById('toggleSearchBtn');
+        
+        if (searchPanelContent) {
+            searchPanelContent.classList.remove('collapsed', 'addon-collapsed'); // สั่งกางหน้าต่าง
+        }
+        if (toggleBtn) {
+            toggleBtn.classList.remove('rotated'); // สั่งลูกศรหัวขึ้น
+        }
+
+        //  เซ็ตค่าปลายทาง (TO)
         const goalInput = document.getElementById('goal-query');
         if (goalInput) {
             goalInput.value = roomName;
             if (nodeId) goalInput.dataset.nodeId = nodeId;
         }
+
+        // เช็คช่องเริ่มต้น (FROM) ถ้าว่าง ให้เด้งเคอร์เซอร์ไปกระพริบรอ
         const startInput = document.getElementById('start-query');
         if (startInput && !startInput.value.trim()) {
-            setTimeout(() => startInput.focus(), 200);
+            setTimeout(() => startInput.focus(), 300); 
         }
 
         const t = window.__i18n?.[window.__lang || 'th'] || {};
@@ -642,4 +656,20 @@ document.addEventListener('DOMContentLoaded', function () {
             initMap(); 
         }
     })
+
+    //  พับหน้าต่างค้นหาอัตโนมัติเมื่อกดปุ่ม "นำทาง" (Navigate)
+    document.addEventListener('click', (e) => {
+        // เช็คว่าสิ่งที่ผู้ใช้กด คือปุ่มนำทาง ใช่หรือไม่
+        if (e.target.closest('#btn-navigate')) {
+            const searchPanelContent = document.getElementById('search-panel-content');
+            const toggleBtn = document.querySelector('.addon-search-toggle') || document.getElementById('toggleSearchBtn');
+            
+            if (searchPanelContent) {
+                searchPanelContent.classList.add('collapsed'); // บังคับพับเก็บ
+            }
+            if (toggleBtn) {
+                toggleBtn.classList.add('rotated'); // บังคับลูกศรหัวลง
+            }
+        }
+    });
 });
