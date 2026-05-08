@@ -2257,22 +2257,6 @@
       "type": "junction"
     },
     {
-      "id": "LC3_Junction_QR3-1",
-      "name": "Junction_QR3-1",
-      "floor": 1,
-      "x": 581,
-      "y": 76,
-      "type": "junction"
-    },
-    {
-      "id": "LC3_Junction_QR3-2",
-      "name": "Junction_QR3-2",
-      "floor": 1,
-      "x": 581,
-      "y": 126,
-      "type": "junction"
-    },
-    {
       "id": "LC3_QR5",
       "name": "QR5",
       "floor": 2,
@@ -2412,9 +2396,25 @@
       "id": "LC3_QR3",
       "name": "QR3",
       "floor": 1,
-      "x": 632,
+      "x": 541,
       "y": 126,
       "type": "room"
+    },
+    {
+      "id": "LC3_Junction_NM",
+      "name": "Junction_NM",
+      "floor": 1,
+      "x": 581,
+      "y": 76,
+      "type": "junction"
+    },
+    {
+      "id": "LC3_Junction_NM1",
+      "name": "Junction_NM1",
+      "floor": 1,
+      "x": 581,
+      "y": 126,
+      "type": "junction"
     }
   ],
   "edges": [
@@ -4036,18 +4036,6 @@
       "distance": 0
     },
     {
-      "from": "LC3_entry_102/1",
-      "to": "LC3_Junction_QR3-1",
-      "type": "walk",
-      "distance": 0
-    },
-    {
-      "from": "LC3_Junction_QR3-2",
-      "to": "LC3_entry_101",
-      "type": "walk",
-      "distance": 0
-    },
-    {
       "from": "LC3_F2_entry-4",
       "to": "LC3_hallway-4",
       "type": "walk",
@@ -4216,14 +4204,26 @@
       "distance": 0
     },
     {
-      "from": "LC3_Junction_QR3-1",
-      "to": "LC3_Junction_QR3-2",
+      "from": "LC3_entry_102/1",
+      "to": "LC3_Junction_NM",
+      "type": "walk",
+      "distance": 0
+    },
+    {
+      "from": "LC3_Junction_NM",
+      "to": "LC3_Junction_NM1",
+      "type": "walk",
+      "distance": 0
+    },
+    {
+      "from": "LC3_Junction_NM1",
+      "to": "LC3_entry_101",
       "type": "walk",
       "distance": 0
     },
     {
       "from": "LC3_QR3",
-      "to": "LC3_Junction_QR3-2",
+      "to": "LC3_Junction_NM1",
       "type": "walk",
       "distance": 0
     }
