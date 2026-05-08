@@ -140,8 +140,8 @@
       "id": "LC3_101",
       "name": "101",
       "floor": 1,
-      "x": 502,
-      "y": 170,
+      "x": 503,
+      "y": 190,
       "type": "room",
       "label": "ห้องพักอาจารย์ (คณิตศาสตร์และสถิติ)"
     },
@@ -570,7 +570,7 @@
       "name": "entry_101",
       "floor": 1,
       "x": 581,
-      "y": 170,
+      "y": 190,
       "type": "entrance"
     },
     {
@@ -2204,15 +2204,15 @@
       "id": "LC3_QR2",
       "name": "QR2",
       "floor": 1,
-      "x": 158,
-      "y": 316,
+      "x": 169,
+      "y": 329,
       "type": "room"
     },
     {
       "id": "LC3_QR1",
       "name": "QR1",
       "floor": 1,
-      "x": 619,
+      "x": 609,
       "y": 394,
       "type": "room"
     },
@@ -2233,19 +2233,11 @@
       "type": "junction"
     },
     {
-      "id": "LC3_Junction_QR1-2",
-      "name": "Junction_QR1-2",
-      "floor": 1,
-      "x": 619,
-      "y": 444,
-      "type": "junction"
-    },
-    {
       "id": "LC3_QR4",
       "name": "QR4",
       "floor": 1,
-      "x": 1026,
-      "y": 385,
+      "x": 1039,
+      "y": 372,
       "type": "room"
     },
     {
@@ -2253,15 +2245,7 @@
       "name": "Junction_QR4-1",
       "floor": 1,
       "x": 1020,
-      "y": 385,
-      "type": "junction"
-    },
-    {
-      "id": "LC3_Junction_QR4-2",
-      "name": "Junction_QR4-2",
-      "floor": 1,
-      "x": 1026,
-      "y": 400,
+      "y": 372,
       "type": "junction"
     },
     {
@@ -2273,26 +2257,18 @@
       "type": "junction"
     },
     {
-      "id": "LC3_Junction_NM1",
-      "name": "Junction_NM1",
-      "floor": 1,
-      "x": 581,
-      "y": 76,
-      "type": "junction"
-    },
-    {
       "id": "LC3_QR3",
       "name": "QR3",
       "floor": 1,
-      "x": 535,
-      "y": 116,
+      "x": 541,
+      "y": 112,
       "type": "room"
     },
     {
       "id": "LC3_Junction_QR3-1",
       "name": "Junction_QR3-1",
       "floor": 1,
-      "x": 535,
+      "x": 541,
       "y": 76,
       "type": "junction"
     },
@@ -2301,7 +2277,7 @@
       "name": "Junction_QR3-2",
       "floor": 1,
       "x": 581,
-      "y": 116,
+      "y": 112,
       "type": "junction"
     },
     {
@@ -4018,18 +3994,6 @@
       "distance": 0
     },
     {
-      "from": "LC3_Junction_SM",
-      "to": "LC3_Junction_QR1-2",
-      "type": "walk",
-      "distance": 0
-    },
-    {
-      "from": "LC3_QR1",
-      "to": "LC3_Junction_QR1-2",
-      "type": "walk",
-      "distance": 0
-    },
-    {
       "from": "LC3_QR1",
       "to": "LC3_Junction_QR1-1",
       "type": "walk",
@@ -4048,20 +4012,8 @@
       "distance": 0
     },
     {
-      "from": "LC3_Junction_QR1-2",
-      "to": "LC3_entry_121/4",
-      "type": "walk",
-      "distance": 0
-    },
-    {
       "from": "LC3_Junction_SR2",
       "to": "LC3_Junction_SR1",
-      "type": "walk",
-      "distance": 0
-    },
-    {
-      "from": "LC3_Junction_SR1",
-      "to": "LC3_Junction_QR4-2",
       "type": "walk",
       "distance": 0
     },
@@ -4078,38 +4030,14 @@
       "distance": 0
     },
     {
-      "from": "LC3_QR4",
-      "to": "LC3_Junction_QR4-2",
-      "type": "walk",
-      "distance": 0
-    },
-    {
       "from": "LC3_Junction_QR4-1",
       "to": "LC3_Junction_TLRM",
       "type": "walk",
       "distance": 0
     },
     {
-      "from": "LC3_Junction_QR4-2",
-      "to": "LC3_entry_132",
-      "type": "walk",
-      "distance": 0
-    },
-    {
       "from": "LC3_entry_102/1",
       "to": "LC3_Junction_QR3-1",
-      "type": "walk",
-      "distance": 0
-    },
-    {
-      "from": "LC3_Junction_QR3-1",
-      "to": "LC3_Junction_NM1",
-      "type": "walk",
-      "distance": 0
-    },
-    {
-      "from": "LC3_Junction_NM1",
-      "to": "LC3_Junction_QR3-2",
       "type": "walk",
       "distance": 0
     },
@@ -4284,6 +4212,18 @@
     {
       "from": "LC3_hallway_TLRF",
       "to": "LC3_F2_entry-13",
+      "type": "walk",
+      "distance": 0
+    },
+    {
+      "from": "LC3_Junction_SR1",
+      "to": "LC3_entry_132",
+      "type": "walk",
+      "distance": 0
+    },
+    {
+      "from": "LC3_Junction_SM",
+      "to": "LC3_entry_121/4",
       "type": "walk",
       "distance": 0
     }
