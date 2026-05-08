@@ -727,7 +727,7 @@
         if (!state.nodes || state.nodes.length === 0) return;
         
         state.searchItems = state.nodes
-            .filter(node => node && node.x !== undefined && node.y !== undefined)
+            .filter(node => node && node.x !== undefined && node.y !== undefined && node.type === 'room')
             .map(node => itemFromNode(node));
         rebuildMockData();
 
@@ -745,7 +745,7 @@
             state.graph = await response.json();
             state.nodes = Array.isArray(state.graph.nodes) ? state.graph.nodes : [];
             state.searchItems = state.nodes
-                .filter(node => node && node.x !== undefined && node.y !== undefined)
+                .filter(node => node && node.x !== undefined && node.y !== undefined && node.type === 'room')
                 .map(node => itemFromNode(node));
             rebuildMockData();
             attachFromToAutocomplete();
