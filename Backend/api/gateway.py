@@ -59,6 +59,11 @@ def invoke_direction_lambda_event(event):
     return direction_lambda.lambda_handler(event, None)
 
 
+def invoke_graph_service():
+    graph = pathfinding_lambda.load_graph()
+    return json_response(200, graph)
+
+
 def invoke_direction_service(path_array):
     print(f"[Gateway] Generating directions for {len(path_array)} nodes")
     if not path_array or len(path_array) < 2:
@@ -146,6 +151,8 @@ if __name__ == "__main__":
 
             if parsed_path.path in ("/pathfinding", "/api/pathfinding"):
                 response = invoke_pathfinding_lambda_event({"queryStringParameters": qs})
+            elif parsed_path.path in ("/graph", "/api/graph"):
+                response = invoke_graph_service()
             elif parsed_path.path in ("/direction", "/directions", "/api/direction", "/api/directions"):
                 path = [node for node in qs.get("path", "").split(",") if node]
                 response = invoke_direction_lambda_event({"body": json.dumps({"path": path})})
