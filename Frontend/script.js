@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (currentLocationId) {
             try {
-                const response = await fetch('../Database/graph.json');
+                const response = await fetch('graph.json');
                 if (!response.ok) throw new Error("หาไฟล์ไม่เจอ");
 
                 const data = await response.json();

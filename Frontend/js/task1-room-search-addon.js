@@ -5,7 +5,7 @@
 (function () {
     'use strict';
 
-    const GRAPH_URL = '../Database/graph.json';
+    const GRAPH_URL = 'graph.json';
     const API_BASE_URL = String(window.CS232_API_BASE || '').trim();
     const state = {
         graph: null,
