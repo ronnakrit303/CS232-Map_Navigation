@@ -465,7 +465,7 @@ body {
 }
 
 .sheet-content {
-  padding: 4px 20px 24px;
+  padding: 4px 20px 10px;
   overflow-y: auto; flex: 1; min-height: 0;
   overscroll-behavior: contain;
 }
@@ -704,7 +704,7 @@ body {
 .rs-step-nav {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom:0;
 }
 .rs-step-prev,
 .rs-step-next {

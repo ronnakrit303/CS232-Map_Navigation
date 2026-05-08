@@ -25,8 +25,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 toggleBtn.click();
             } else if (closeBtn) {
                 closeBtn.click();
-            } else if (typeof closeBottomSheet === 'function') {
-                closeBottomSheet();
+            } else if (typeof window.closeBottomSheet === 'function') {
+                window.closeBottomSheet();
             }
             sheetOverlay.classList.remove('show');
         });
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateMapTransform();
     }, { passive: false });
 
-    function setInitialLocation(x, y, startZoom, shouldHighlight = true, floor = null) {
+    window.setInitialLocation = function(x, y, startZoom, shouldHighlight = true, floor = null) {
         if (startZoom !== null && startZoom !== undefined) {
             currentScale = startZoom;
         }
@@ -406,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function () {
     searchInput.addEventListener('input', debounce(function () {
         const query = this.value.trim().toLowerCase();
         if (query.length === 0) {
-            closeBottomSheet();
+            window.closeBottomSheet();
             return;
         }
         clearSearchBtn.style.display = 'block';
@@ -506,6 +506,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const t = window.__i18n?.[window.__lang || 'th'] || {};
         const pinHint = window.__lang === 'en' ? 'Pinned · Set starting point to navigate' : 'ปักหมุดแล้ว · ระบุจุดเริ่มต้นเพื่อนำทาง';
+        
         sheetContent.innerHTML = `
             <div class="pin-confirm">
                 <div class="pin-confirm__icon"><i class="fas fa-map-marker-alt"></i></div>
@@ -513,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="pin-confirm__name">${roomName}</div>
                     <div class="pin-confirm__hint">${pinHint}</div>
                 </div>
-                <button class="pin-confirm__close" onclick="document.getElementById('bottomSheet').classList.remove('show')">
+                <button class="pin-confirm__close" onclick="window.closeBottomSheet(); window.removeMarker();">
                     <i class="fas fa-times"></i>
                 </button>
             </div>`;
@@ -521,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function highlightRoom(x, y, floor) {
-        removeMarker();
+        window.removeMarker();
         const marker = document.createElement('div');
         marker.id = 'marker';
         marker.style.position = 'absolute';
@@ -540,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('mapWrapper').appendChild(marker);
     }
 
-    function removeMarker() {
+    window.removeMarker = function() {
         const old = document.getElementById('marker');
         if (old) old.remove();
     }
@@ -549,14 +550,27 @@ document.addEventListener('DOMContentLoaded', function () {
         bottomSheet.classList.remove('show');
         if (sheetOverlay) sheetOverlay.classList.remove('show');
         searchInput.value = '';
-        clearSearchBtn.style.display = 'none';
-        searchTags.style.display = 'flex';
+        
+        // --- เริ่มส่วนที่เพิ่มเข้ามา: เคลียร์ช่อง FROM / TO ---
+        const startInput = document.getElementById('start-query');
+        const goalInput = document.getElementById('goal-query');
+        if (startInput) {
+            startInput.value = '';
+            startInput.dataset.nodeId = '';
+        }
+        if (goalInput) {
+            goalInput.value = '';
+            goalInput.dataset.nodeId = '';
+        }
+        // --- จบส่วนที่เพิ่มเข้ามา ---
+
+        if (clearSearchBtn) clearSearchBtn.style.display = 'none';
+        if (searchTags) searchTags.style.display = 'flex';
         setTimeout(() => sheetContent.innerHTML = '', 300);
     }
-
     clearSearchBtn.addEventListener('click', () => {
-        closeBottomSheet();
-        removeMarker();
+        window.closeBottomSheet();
+        window.removeMarker();
     });
 
     // ==========================================
@@ -587,31 +601,26 @@ document.addEventListener('DOMContentLoaded', function () {
         const deltaY = sheetCurrentY - sheetStartY;
         const stepsWrap = document.getElementById('navStepsWrap');
         
-        // ถ้าเป็นการเลื่อนระยะมากกว่า 40px ถึงจะทำงาน (กันการแตะพลาด)
         if (Math.abs(deltaY) > 40) {
             if (deltaY < 0) {
-                // ลากขึ้น -> ขยายดูรายละเอียด
                 if (stepsWrap && stepsWrap.classList.contains('collapsed')) {
                     stepsWrap.classList.remove('collapsed');
                 }
             } else {
-                // ลากลง -> เช็คก่อนว่าเนื้อหาข้างในถูกเลื่อน (Scroll) อยู่หรือเปล่า
                 const isContentScrolled = sheetContent && sheetContent.scrollTop > 0;
                 
-                // ถ้าเนื้อหาไม่ได้เลื่อนอยู่ (Scroll อยู่บนสุด) อนุญาตให้ซ่อน/ปิดได้
                 if (!isContentScrolled && sheetStartScrollTop <= 0) {
                     if (stepsWrap && !stepsWrap.classList.contains('collapsed')) {
-                        stepsWrap.classList.add('collapsed'); // ซ่อนแค่รายละเอียดก่อน
+                        stepsWrap.classList.add('collapsed'); 
                     } else {
-                        closeBottomSheet(); // ถ้าซ่อนรายละเอียดอยู่แล้ว ให้ปิด Sheet เลย
-                        removeMarker();
+                        window.closeBottomSheet(); 
+                        window.removeMarker();
                     }
                 }
             }
         }
     };
 
-    // รองรับจอสัมผัส (มือถือ/แท็บเล็ต) สามารถลากตรงไหนก็ได้บน Bottom Sheet
     if (bottomSheet) {
         bottomSheet.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) handleDragStart(e.touches[0].clientY);
@@ -622,7 +631,6 @@ document.addEventListener('DOMContentLoaded', function () {
         bottomSheet.addEventListener('touchend', handleDragEnd);
     }
 
-    // รองรับเมาส์ (คอมพิวเตอร์) ลากได้เฉพาะตรงแถบด้านบน (Drag Handle)
     if (dragHandle) {
         dragHandle.addEventListener('mousedown', (e) => handleDragStart(e.clientY));
         window.addEventListener('mousemove', (e) => handleDragMove(e.clientY));

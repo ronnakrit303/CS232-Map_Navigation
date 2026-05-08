@@ -1,6 +1,6 @@
 /*
  * Task4 / US1 Add-on: Room Search UI
- * Updated version - Remove toggle button & implement drag gestures
+ * Updated version - Compact, No Text Tip, Swipe Support, Bugs Fixed
  */
 (function () {
     'use strict';
@@ -291,7 +291,14 @@
         if (!node) return;
 
         const floor = activeFloor();
-        if (String(node.floor) !== floor) return;
+        
+        // ถ้า Step ถัดไปอยู่คนละชั้น ให้จำลองการกดปุ่มเปลี่ยนชั้นอัตโนมัติ
+        if (String(node.floor) !== String(floor)) {
+            const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${node.floor}"]`);
+            if (targetFloorBtn) {
+                targetFloorBtn.click();
+            }
+        }
 
         const mapWrapper = document.getElementById('mapWrapper');
         if (!mapWrapper) return;
@@ -302,8 +309,9 @@
         dot.style.top = `${node.y}px`;
         mapWrapper.appendChild(dot);
 
-        if (typeof setInitialLocation === 'function') {
-            setInitialLocation(node.x, node.y, null, false);
+        // สั่งให้แมพขยับตามพิกัด (Pan) ไปตรงสเต็ปนั้นๆ
+        if (typeof window.setInitialLocation === 'function') {
+            window.setInitialLocation(node.x, node.y, null, false, node.floor);
         }
     }
 
@@ -473,6 +481,7 @@
             if (stepTextEl) stepTextEl.textContent = displayNodeName(goalNode);
             if (stepIconEl) stepIconEl.className = 'fas fa-flag-checkered';
             if (nextBtn) {
+                // ทำให้ปุ่มไม่เป็นสถานะ disabled และสามารถกดเพื่อล้างเส้นทางได้
                 nextBtn.disabled = false;
                 nextBtn.innerHTML = `<i class="fas fa-flag-checkered"></i> ${t.arrived || 'ถึงแล้ว!'}`;
             }
@@ -542,7 +551,6 @@
         const firstInst = instructions[0];
         const firstMeta = firstInst ? (actionMeta[firstInst.action] || actionMeta.walk) : actionMeta.walk;
 
-        // ลบปุ่ม "ดูขั้นตอนทั้งหมด" (routeBtnRow) ออก 100%
         content.innerHTML = `
             <div class="rs-dest-row">
                 <i class="fas fa-location-dot rs-dest-icon"></i>
@@ -567,7 +575,7 @@
                 </div>
             </div>
 
-            <div class="rs-step-nav">
+            <div class="rs-step-nav" style="margin-bottom: 0;">
                 <button class="rs-step-prev" id="rs-prev-btn" disabled>
                     <i class="fas fa-chevron-left"></i> ${t.prev || 'ก่อนหน้า'}
                 </button>
@@ -582,10 +590,6 @@
                     ${arrivedHtml}
                 </ol>
             </div>
-            
-            <div style="text-align: center; color: var(--on-surface-3); font-size: 11px; padding-top: 12px; padding-bottom: 5px;">
-                <i class="fas fa-chevron-up" style="opacity: 0.7;"></i>
-            </div>
         `;
 
         const prevBtn = document.getElementById('rs-prev-btn');
@@ -598,11 +602,13 @@
             }
         });
 
+        // เมื่อกดปุ่ม Next / ถึงแล้ว
         nextBtn && nextBtn.addEventListener('click', () => {
             if (state.currentStepIndex < instructions.length) {
                 renderStepByStep(instructions, goalNode, state.currentStepIndex + 1);
             } else {
-                if(typeof closeBottomSheet === 'function') closeBottomSheet();
+                // ถ้าอยู่ที่ขั้นตอนสุดท้าย (ถึงแล้ว) เมื่อกดจะทำการปิดหน้าต่างและเคลียร์เส้นทาง
+                if(typeof window.closeBottomSheet === 'function') window.closeBottomSheet();
                 clearRouteOverlay();
                 state.currentRoutePath = [];
                 state.stepInstructions = [];
@@ -617,7 +623,7 @@
         });
 
         closeBtn && closeBtn.addEventListener('click', () => {
-            if(typeof closeBottomSheet === 'function') closeBottomSheet();
+            if(typeof window.closeBottomSheet === 'function') window.closeBottomSheet();
             clearRouteOverlay();
             state.currentRoutePath = [];
             state.stepInstructions = [];
