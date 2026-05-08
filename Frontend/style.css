@@ -1013,7 +1013,7 @@ body {
   }
   .floor-controls { right: 20px; }
   .zoom-controls  { left: 20px; }
-  .event-fab      { left: 20px; }
+  .event-fab      { right: 20px; }
   .bottom-sheet {
     left: 50%; right: auto;
     transform: translateY(100%) translateX(-50%);
