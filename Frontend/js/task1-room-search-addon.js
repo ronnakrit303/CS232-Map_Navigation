@@ -291,14 +291,7 @@
         if (!node) return;
 
         const floor = activeFloor();
-        
-        // ถ้า Step ถัดไปอยู่คนละชั้น ให้จำลองการกดปุ่มเปลี่ยนชั้นอัตโนมัติ
-        if (String(node.floor) !== String(floor)) {
-            const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${node.floor}"]`);
-            if (targetFloorBtn) {
-                targetFloorBtn.click();
-            }
-        }
+        if (String(node.floor) !== floor) return;
 
         const mapWrapper = document.getElementById('mapWrapper');
         if (!mapWrapper) return;
@@ -309,9 +302,8 @@
         dot.style.top = `${node.y}px`;
         mapWrapper.appendChild(dot);
 
-        // สั่งให้แมพขยับตามพิกัด (Pan) ไปตรงสเต็ปนั้นๆ
-        if (typeof window.setInitialLocation === 'function') {
-            window.setInitialLocation(node.x, node.y, null, false, node.floor);
+        if (typeof setInitialLocation === 'function') {
+            setInitialLocation(node.x, node.y, null, false);
         }
     }
 

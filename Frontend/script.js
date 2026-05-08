@@ -609,12 +609,10 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 const isContentScrolled = sheetContent && sheetContent.scrollTop > 0;
                 
+                // ถ้าปัดลง ให้พับหน้าจอเก็บเฉยๆ ห้ามเคลียร์ route ห้ามปิด sheet
                 if (!isContentScrolled && sheetStartScrollTop <= 0) {
                     if (stepsWrap && !stepsWrap.classList.contains('collapsed')) {
                         stepsWrap.classList.add('collapsed'); 
-                    } else {
-                        window.closeBottomSheet(); 
-                        window.removeMarker();
                     }
                 }
             }
