@@ -10,7 +10,7 @@ sys.path.append(BACKEND_DIR)
 from lambdas.pathfinding import lambda_function as pathfinding_lambda
 from lambdas.direction import lambda_function as direction_lambda
 
-#
+
 def json_response(status_code, body):
     return {
         "statusCode": status_code,
