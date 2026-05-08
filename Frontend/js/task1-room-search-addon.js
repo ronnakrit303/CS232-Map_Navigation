@@ -5,7 +5,7 @@
 (function () {
     'use strict';
 
-    const GRAPH_URL = window.CS232_GRAPH_URL || 'graph.json';
+    const GRAPH_URL = 'graph.json';
     const API_BASE_URL = String(window.CS232_API_BASE || '').trim();
     const state = {
         graph: null,
@@ -234,41 +234,6 @@
         document.querySelectorAll('.route-path-line, .route-node-marker, .route-step-highlight').forEach(el => el.remove());
     }
 
-    function routeSegmentsOnFloor(path, floor) {
-        const segments = [];
-        let currentSegment = [];
-
-        path.forEach(nodeId => {
-            const node = findNodeByIdOrName(nodeId);
-            const isDrawableNode = node &&
-                String(node.floor) === floor &&
-                Number.isFinite(Number(node.x)) &&
-                Number.isFinite(Number(node.y));
-
-            if (isDrawableNode) {
-                currentSegment.push(node);
-                return;
-            }
-
-            if (currentSegment.length >= 2) segments.push(currentSegment);
-            currentSegment = [];
-        });
-
-        if (currentSegment.length >= 2) segments.push(currentSegment);
-        return segments;
-    }
-
-    function appendRoutePolyline(svg, nodes, stroke, strokeWidth) {
-        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        polyline.setAttribute('points', nodes.map(node => `${node.x},${node.y}`).join(' '));
-        polyline.setAttribute('fill', 'none');
-        polyline.setAttribute('stroke', stroke);
-        polyline.setAttribute('stroke-width', strokeWidth);
-        polyline.setAttribute('stroke-linecap', 'round');
-        polyline.setAttribute('stroke-linejoin', 'round');
-        svg.appendChild(polyline);
-    }
-
     function drawRouteOnCurrentFloor(path) {
         clearRouteOverlay();
         const mapWrapper = document.getElementById('mapWrapper');
@@ -276,10 +241,11 @@
         if (!mapWrapper || !mapImage || !Array.isArray(path) || path.length < 2) return;
 
         const floor = activeFloor();
-        const routeSegments = routeSegmentsOnFloor(path, floor);
-        const routeNodes = routeSegments.flat();
+        const routeNodes = path
+            .map(nodeId => findNodeByIdOrName(nodeId))
+            .filter(node => node && String(node.floor) === floor && Number.isFinite(Number(node.x)) && Number.isFinite(Number(node.y)));
 
-        if (routeSegments.length === 0) return;
+        if (routeNodes.length < 2) return;
 
         const width = mapImage.naturalWidth || mapImage.width || 1200;
         const height = mapImage.naturalHeight || mapImage.height || 800;
@@ -289,8 +255,23 @@
         svg.setAttribute('height', height);
         svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
-        routeSegments.forEach(segment => appendRoutePolyline(svg, segment, 'rgba(26,115,232,0.25)', 12));
-        routeSegments.forEach(segment => appendRoutePolyline(svg, segment, '#1a73e8', 6));
+        const polylineBg = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polylineBg.setAttribute('points', routeNodes.map(node => `${node.x},${node.y}`).join(' '));
+        polylineBg.setAttribute('fill', 'none');
+        polylineBg.setAttribute('stroke', 'rgba(26,115,232,0.25)');
+        polylineBg.setAttribute('stroke-width', '12');
+        polylineBg.setAttribute('stroke-linecap', 'round');
+        polylineBg.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(polylineBg);
+
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', routeNodes.map(node => `${node.x},${node.y}`).join(' '));
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke', '#1a73e8');
+        polyline.setAttribute('stroke-width', '6');
+        polyline.setAttribute('stroke-linecap', 'round');
+        polyline.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(polyline);
         mapWrapper.appendChild(svg);
 
         [routeNodes[0], routeNodes[routeNodes.length - 1]].forEach((node, index) => {
