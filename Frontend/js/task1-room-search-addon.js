@@ -66,12 +66,26 @@
         const query = normalize(value).replace(/^lc3_/, '').replace(/^f2_/, '');
         if (!query) return null;
 
-        return state.nodes.find(node => normalize(node.id) === normalize(value)) ||
+        let normalizedValue = normalize(value);
+        // Map Junction IDs between Database and Frontend to prevent broken paths
+        if (normalizedValue === 'lc3_junction_nm' || normalizedValue === 'junction_nm') {
+            normalizedValue = 'lc3_junction_qr3-1';
+        } else if (normalizedValue === 'lc3_junction_nm1' || normalizedValue === 'junction_nm1') {
+            normalizedValue = 'lc3_junction_qr3-2';
+        } else if (normalizedValue === 'lc3_junction_qr3-1' || normalizedValue === 'junction_qr3-1') {
+            normalizedValue = 'lc3_junction_nm';
+        } else if (normalizedValue === 'lc3_junction_qr3-2' || normalizedValue === 'junction_qr3-2') {
+            normalizedValue = 'lc3_junction_nm1';
+        }
+
+        let foundNode = state.nodes.find(node => normalize(node.id) === normalizedValue) ||
+            state.nodes.find(node => normalize(node.id) === normalize(value)) ||
             state.nodes.find(node => normalize(node.name) === query) ||
             state.nodes.find(node => normalize(node.name_en) === query) ||
             state.nodes.find(node => normalize(node.id).endsWith('_' + query)) ||
-            state.nodes.find(node => normalize(node.id).endsWith(query)) ||
-            null;
+            state.nodes.find(node => normalize(node.id).endsWith(query));
+
+        return foundNode || null;
     }
 
     function searchItems(query, limit = 8) {
