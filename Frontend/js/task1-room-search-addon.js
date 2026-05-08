@@ -1,6 +1,6 @@
 /*
  * Task4 / US1 Add-on: Room Search UI
- * Updated version
+ * Updated version - Remove toggle button & implement drag gestures
  */
 (function () {
     'use strict';
@@ -353,7 +353,6 @@
             startNode.type === 'stairs' && endNode.type === 'stairs' && startNode.floor !== endNode.floor;
     }
 
-    // แก้งาน #3 และ #6: รวมเส้นทางแบบตรงให้เป็นสเต็ปเดียว และแปลภาษา
     function buildRouteInstructions(path) {
         if (!Array.isArray(path) || path.length < 2) return [];
 
@@ -474,7 +473,6 @@
             if (stepTextEl) stepTextEl.textContent = displayNodeName(goalNode);
             if (stepIconEl) stepIconEl.className = 'fas fa-flag-checkered';
             if (nextBtn) {
-                // แก้งาน #2: ปลดล็อคปุ่มถึงแล้ว
                 nextBtn.disabled = false;
                 nextBtn.innerHTML = `<i class="fas fa-flag-checkered"></i> ${t.arrived || 'ถึงแล้ว!'}`;
             }
@@ -544,7 +542,7 @@
         const firstInst = instructions[0];
         const firstMeta = firstInst ? (actionMeta[firstInst.action] || actionMeta.walk) : actionMeta.walk;
 
-        // แก้งาน #5: เอา dots และ tip ด้านล่างออกทั้งหมด
+        // ลบปุ่ม "ดูขั้นตอนทั้งหมด" (routeBtnRow) ออก 100%
         content.innerHTML = `
             <div class="rs-dest-row">
                 <i class="fas fa-location-dot rs-dest-icon"></i>
@@ -584,21 +582,15 @@
                     ${arrivedHtml}
                 </ol>
             </div>
-
-            <div class="route-btn-row" id="routeBtnRow">
-                <button class="route-btn route-btn--toggle" id="routeToggleBtn">
-                    <i class="fas fa-list-ol"></i>
-                    <span>${t.showDetail || 'ดูขั้นตอนทั้งหมด'}</span>
-                </button>
+            
+            <div style="text-align: center; color: var(--on-surface-3); font-size: 11px; padding-top: 12px; padding-bottom: 5px;">
+                <i class="fas fa-chevron-up" style="opacity: 0.7;"></i>
             </div>
         `;
 
         const prevBtn = document.getElementById('rs-prev-btn');
         const nextBtn = document.getElementById('rs-next-btn');
         const closeBtn = document.getElementById('rs-close-btn');
-        const toggleBtn = document.getElementById('routeToggleBtn');
-        const stepsWrap = document.getElementById('navStepsWrap');
-        const btnRow = document.getElementById('routeBtnRow');
 
         prevBtn && prevBtn.addEventListener('click', () => {
             if (state.currentStepIndex > 0) {
@@ -606,12 +598,11 @@
             }
         });
 
-        // แก้งาน #2: หากเป็นสเต็ปสุดท้าย (ปุ่มถึงแล้ว) ให้ล้างเส้นทางเลย
         nextBtn && nextBtn.addEventListener('click', () => {
             if (state.currentStepIndex < instructions.length) {
                 renderStepByStep(instructions, goalNode, state.currentStepIndex + 1);
             } else {
-                closeSheet();
+                if(typeof closeBottomSheet === 'function') closeBottomSheet();
                 clearRouteOverlay();
                 state.currentRoutePath = [];
                 state.stepInstructions = [];
@@ -625,19 +616,8 @@
             });
         });
 
-        toggleBtn && toggleBtn.addEventListener('click', () => {
-            const isNowCollapsed = stepsWrap.classList.toggle('collapsed');
-            const icon  = toggleBtn.querySelector('i');
-            const label = toggleBtn.querySelector('span');
-            if (icon)  icon.className  = isNowCollapsed ? 'fas fa-list-ol' : 'fas fa-chevron-up';
-            if (label) label.textContent = isNowCollapsed
-                ? (t.showDetail || 'ดูขั้นตอนทั้งหมด')
-                : (t.hideDetail || 'ย่อขั้นตอน');
-            if (btnRow) btnRow.classList.toggle('sticky', !isNowCollapsed);
-        });
-
         closeBtn && closeBtn.addEventListener('click', () => {
-            closeSheet();
+            if(typeof closeBottomSheet === 'function') closeBottomSheet();
             clearRouteOverlay();
             state.currentRoutePath = [];
             state.stepInstructions = [];
@@ -712,7 +692,6 @@
     };
     window.__cs232SearchAddon.makeItemFromNode = itemFromNode;
 
-    // แก้งาน #4 (ต่อ): ฟังก์ชัน Refresh ภาษา อัปเดตรายการและคำแนะนำใหม่ทั้งหมดเมื่อสลับ EN/TH
     window.__cs232SearchAddon.refreshLang = function() {
         if (!state.nodes || state.nodes.length === 0) return;
         
@@ -724,9 +703,6 @@
         if (state.currentRoutePath && state.currentRoutePath.length > 0) {
             const startNode = findNodeByIdOrName(state.currentRoutePath[0]);
             const goalNode = findNodeByIdOrName(state.currentRoutePath[state.currentRoutePath.length - 1]);
-            const t = window.__i18n?.[window.__lang || 'th'] || {};
-            
-            // Re-render ด้วยภาษาใหม่โดยไม่ต้องโหลด API ใหม่
             renderRouteResult(startNode, goalNode, { path: state.currentRoutePath });
         }
     };
@@ -749,7 +725,6 @@
                     setTimeout(() => {
                         drawRouteOnCurrentFloor(state.currentRoutePath);
                         if (state.stepInstructions && state.stepInstructions.length > 0) {
-                            // สั่งให้ไฮไลต์บนแผนที่ทำงานอีกครั้งเมื่อเปลี่ยนชั้น
                             renderStepByStep(state.stepInstructions, null, state.currentStepIndex);
                         }
                     }, 50);

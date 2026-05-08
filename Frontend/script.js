@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const bottomSheet = document.getElementById('bottomSheet');
     const sheetContent = document.getElementById('sheetContent');
     const sheetOverlay = document.getElementById('sheetOverlay');
+    const dragHandle = document.getElementById('dragHandle');
 
     if (sheetOverlay) {
         sheetOverlay.addEventListener('click', () => {
@@ -28,24 +29,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 closeBottomSheet();
             }
             sheetOverlay.classList.remove('show');
-        });
-    }
-
-    if (bottomSheet) {
-        bottomSheet.addEventListener('click', (e) => {
-            const btn = e.target.closest('#routeToggleBtn');
-            const closeBtn = e.target.closest('.route-close-btn');
-            if (btn) {
-                setTimeout(() => {
-                    if (btn.innerText.includes('ย่อ')) {
-                        if (sheetOverlay) sheetOverlay.classList.add('show');
-                    } else if (btn.innerText.includes('แสดง')) {
-                        if (sheetOverlay) sheetOverlay.classList.remove('show');
-                    }
-                }, 50);
-            } else if (closeBtn) {
-                if (sheetOverlay) sheetOverlay.classList.remove('show');
-            }
         });
     }
 
@@ -111,7 +94,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const scaledWidth = imgWidth * currentScale;
         const scaledHeight = imgHeight * currentScale;
 
-        // แก้งาน #1: ขยายอิสระการเลื่อนแผนที่ให้สามารถลากดูด้านล่างที่โดน bottom sheet บังได้
         const overscrollY = mapContainer.clientHeight * 0.6;
         const overscrollX = mapContainer.clientWidth * 0.4;
 
@@ -232,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateMapTransform();
     }, { passive: false });
 
-    function setInitialLocation(x, y, startZoom, shouldHighlight = true) {
+    function setInitialLocation(x, y, startZoom, shouldHighlight = true, floor = null) {
         if (startZoom !== null && startZoom !== undefined) {
             currentScale = startZoom;
         }
@@ -246,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateMapTransform();
 
         if (shouldHighlight && typeof highlightRoom === 'function') {
-            highlightRoom(targetPixelX, targetPixelY);
+            highlightRoom(targetPixelX, targetPixelY, floor);
         }
     }
 
@@ -274,10 +256,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     const placeMarkerWhenReady = () => {
                         if (mapImage.complete && mapImage.naturalWidth > 0) {
-                            setInitialLocation(locationData.x, locationData.y, 2.5);
+                            setInitialLocation(locationData.x, locationData.y, 2.5, true, locationData.floor);
                         } else {
                             mapImage.onload = () => {
-                                setInitialLocation(locationData.x, locationData.y, 2.5);
+                                setInitialLocation(locationData.x, locationData.y, 2.5, true, locationData.floor);
                                 mapImage.onload = null;
                             };
                         }
@@ -307,16 +289,26 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
             floorBtns.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            mapImage.src = this.getAttribute('data-floor') === '1'
+            
+            const selectedFloor = this.getAttribute('data-floor');
+            mapImage.src = selectedFloor === '1'
                 ? 'resources/LC3-MAP-1stFloor.svg'
                 : 'resources/LC3-MAP-2ndFloor.svg';
+                
+            const marker = document.getElementById('marker');
+            if (marker && marker.dataset.floor) {
+                if (String(marker.dataset.floor) === String(selectedFloor)) {
+                    marker.style.display = 'block'; 
+                } else {
+                    marker.style.display = 'none';  
+                }
+            }
         });
     });
 
     const langToggle = document.getElementById('langToggle');
     let isThai = true;
 
-    // แก้งาน #4: แปลภาษาแบบจัดเต็มทั้งระบบ
     const i18n = {
         th: {
             searchPlaceholder: 'ค้นหาห้อง, วิชา, งาน…',
@@ -397,7 +389,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const navBtn = document.getElementById('btn-navigate');
         if (navBtn) navBtn.innerHTML = t.navigateBtn;
         
-        // สั่งให้ addon refresh ภาษา (ชื่อห้อง, route details)
         if (window.__cs232SearchAddon && typeof window.__cs232SearchAddon.refreshLang === 'function') {
             window.__cs232SearchAddon.refreshLang();
         }
@@ -449,7 +440,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const catIcon  = { event: 'fa-calendar-alt', course: 'fa-book-open', room: 'fa-door-open', facility: 'fa-info-circle', stairs: 'fa-stairs', entrance: 'fa-sign-in-alt' };
         const catClass = { event: 'cat-event', course: 'cat-course', stairs: 'cat-stairs', entrance: 'cat-entrance' };
         
-        // แปลง category labels
         const t = window.__i18n?.[window.__lang || 'th'] || {};
         const catLabel = window.__lang === 'en' 
             ? { event: 'Event', course: 'Course', room: 'Room', facility: 'Facility', stairs: 'Stairs', entrance: 'Entrance' }
@@ -471,8 +461,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 const cls   = catClass[cat] || '';
                 const label = catLabel[cat] || (window.__lang === 'en' ? 'Location' : 'สถานที่');
                 const sub   = item.RoomName ? item.RoomName : (label + (item.floor ? ` · ${window.__lang === 'en' ? 'Floor' : 'ชั้น'} ${item.floor}` : ''));
+                
                 html += `
-                    <div class="result-item" onclick="selectRoom('${item.RoomNumber}',${item.X},${item.Y},'${item.node_id||''}')">
+                    <div class="result-item" onclick="selectRoom('${item.RoomNumber}',${item.X},${item.Y},'${item.node_id||''}','${item.floor||''}')">
                         <div class="result-icon ${cls}"><i class="fas ${icon}"></i></div>
                         <div class="result-text">
                             <b>${hi(item.RoomNumber || item.SearchTerm)}</b>
@@ -486,9 +477,22 @@ document.addEventListener('DOMContentLoaded', function () {
         bottomSheet.classList.add('show');
     }
 
-    window.selectRoom = function (roomName, x, y, nodeId) {
+    window.selectRoom = function (roomName, x, y, nodeId, floor) {
         searchInput.value = roomName;
-        if (x && y) setInitialLocation(x, y, Math.max(getMinScale(), 2.8));
+
+        if (floor) {
+            const activeFloorBtn = document.querySelector('.floor-btn.active');
+            const currentFloor = activeFloorBtn ? activeFloorBtn.getAttribute('data-floor') : null;
+            
+            if (currentFloor && String(floor) !== String(currentFloor)) {
+                const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${floor}"]`);
+                if (targetFloorBtn) {
+                    targetFloorBtn.click();
+                }
+            }
+        }
+
+        if (x && y) setInitialLocation(x, y, Math.max(getMinScale(), 2.8), true, floor);
 
         const goalInput = document.getElementById('goal-query');
         if (goalInput) {
@@ -516,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function () {
         bottomSheet.classList.add('show');
     }
 
-    function highlightRoom(x, y) {
+    function highlightRoom(x, y, floor) {
         removeMarker();
         const marker = document.createElement('div');
         marker.id = 'marker';
@@ -528,6 +532,10 @@ document.addEventListener('DOMContentLoaded', function () {
         marker.style.background = 'red';
         marker.style.borderRadius = '50%';
         marker.style.transform = `translate(-50%, -50%) scale(${1 / currentScale})`;
+        
+        if (floor) {
+            marker.dataset.floor = floor;
+        }
 
         document.getElementById('mapWrapper').appendChild(marker);
     }
@@ -537,18 +545,88 @@ document.addEventListener('DOMContentLoaded', function () {
         if (old) old.remove();
     }
 
-    clearSearchBtn.addEventListener('click', () => {
-        closeBottomSheet();
-        removeMarker();
-    });
-
-    function closeBottomSheet() {
+    window.closeBottomSheet = function() {
         bottomSheet.classList.remove('show');
         if (sheetOverlay) sheetOverlay.classList.remove('show');
         searchInput.value = '';
         clearSearchBtn.style.display = 'none';
         searchTags.style.display = 'flex';
         setTimeout(() => sheetContent.innerHTML = '', 300);
+    }
+
+    clearSearchBtn.addEventListener('click', () => {
+        closeBottomSheet();
+        removeMarker();
+    });
+
+    // ==========================================
+    // ระบบ Drag up / Drag down สำหรับ Bottom Sheet
+    // ==========================================
+    let sheetStartY = 0;
+    let sheetCurrentY = 0;
+    let isDraggingSheet = false;
+    let sheetStartScrollTop = 0;
+
+    const handleDragStart = (clientY) => {
+        sheetStartY = clientY;
+        sheetCurrentY = sheetStartY;
+        isDraggingSheet = true;
+        sheetStartScrollTop = sheetContent ? sheetContent.scrollTop : 0;
+    };
+
+    const handleDragMove = (clientY) => {
+        if (isDraggingSheet) {
+            sheetCurrentY = clientY;
+        }
+    };
+
+    const handleDragEnd = () => {
+        if (!isDraggingSheet) return;
+        isDraggingSheet = false;
+
+        const deltaY = sheetCurrentY - sheetStartY;
+        const stepsWrap = document.getElementById('navStepsWrap');
+        
+        // ถ้าเป็นการเลื่อนระยะมากกว่า 40px ถึงจะทำงาน (กันการแตะพลาด)
+        if (Math.abs(deltaY) > 40) {
+            if (deltaY < 0) {
+                // ลากขึ้น -> ขยายดูรายละเอียด
+                if (stepsWrap && stepsWrap.classList.contains('collapsed')) {
+                    stepsWrap.classList.remove('collapsed');
+                }
+            } else {
+                // ลากลง -> เช็คก่อนว่าเนื้อหาข้างในถูกเลื่อน (Scroll) อยู่หรือเปล่า
+                const isContentScrolled = sheetContent && sheetContent.scrollTop > 0;
+                
+                // ถ้าเนื้อหาไม่ได้เลื่อนอยู่ (Scroll อยู่บนสุด) อนุญาตให้ซ่อน/ปิดได้
+                if (!isContentScrolled && sheetStartScrollTop <= 0) {
+                    if (stepsWrap && !stepsWrap.classList.contains('collapsed')) {
+                        stepsWrap.classList.add('collapsed'); // ซ่อนแค่รายละเอียดก่อน
+                    } else {
+                        closeBottomSheet(); // ถ้าซ่อนรายละเอียดอยู่แล้ว ให้ปิด Sheet เลย
+                        removeMarker();
+                    }
+                }
+            }
+        }
+    };
+
+    // รองรับจอสัมผัส (มือถือ/แท็บเล็ต) สามารถลากตรงไหนก็ได้บน Bottom Sheet
+    if (bottomSheet) {
+        bottomSheet.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) handleDragStart(e.touches[0].clientY);
+        }, { passive: true });
+        bottomSheet.addEventListener('touchmove', (e) => {
+            handleDragMove(e.touches[0].clientY);
+        }, { passive: true });
+        bottomSheet.addEventListener('touchend', handleDragEnd);
+    }
+
+    // รองรับเมาส์ (คอมพิวเตอร์) ลากได้เฉพาะตรงแถบด้านบน (Drag Handle)
+    if (dragHandle) {
+        dragHandle.addEventListener('mousedown', (e) => handleDragStart(e.clientY));
+        window.addEventListener('mousemove', (e) => handleDragMove(e.clientY));
+        window.addEventListener('mouseup', handleDragEnd);
     }
 
     let isMapLoaded = false;
