@@ -323,6 +323,10 @@
         document.querySelectorAll('.route-step-highlight').forEach(el => el.remove());
         if (!node) return;
 
+        if (typeof setInitialLocation === 'function') {
+            setInitialLocation(node.x, node.y, null, false, node.floor);
+        }
+
         const floor = activeFloor();
         if (String(node.floor) !== floor) return;
 
@@ -335,9 +339,6 @@
         dot.style.top = `${node.y}px`;
         mapWrapper.appendChild(dot);
 
-        if (typeof setInitialLocation === 'function') {
-            setInitialLocation(node.x, node.y, null, false);
-        }
     }
 
     function edgeBetween(startId, endId) {

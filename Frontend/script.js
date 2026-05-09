@@ -239,6 +239,20 @@ document.addEventListener('DOMContentLoaded', function () {
             currentScale = startZoom;
         }
 
+        //เช็คเปลี่ยนชั้นตอนนำทาง
+        if (floor) {
+            const activeFloorBtn = document.querySelector('.floor-btn.active');
+            const currentFloor = activeFloorBtn ? activeFloorBtn.getAttribute('data-floor') : null;
+            
+            // ถ้าชั้นของจุดหมาย ไม่ตรงกับชั้นที่เปิดอยู่ปัจจุบัน ให้สั่งกดปุ่มชั้นเป้าหมาย
+            if (currentFloor && String(floor) !== String(currentFloor)) {
+                const targetFloorBtn = document.querySelector(`.floor-btn[data-floor="${floor}"]`);
+                if (targetFloorBtn) {
+                    targetFloorBtn.click();
+                }
+            }
+        }
+        
         const targetPixelX = parseFloat(x);
         const targetPixelY = parseFloat(y);
 
