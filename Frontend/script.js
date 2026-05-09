@@ -94,14 +94,34 @@ document.addEventListener('DOMContentLoaded', function () {
         const scaledWidth = imgWidth * currentScale;
         const scaledHeight = imgHeight * currentScale;
 
-        const overscrollY = mapContainer.clientHeight * 0.6;
-        const overscrollX = mapContainer.clientWidth * 0.4;
+        // ซูมเลื่อนmap
+        const padding = 60;
+        
+        let minX, maxX, minY, maxY;
 
-        let minX = mapContainer.clientWidth - scaledWidth - overscrollX;
-        let maxX = overscrollX;
-        let minY = mapContainer.clientHeight - scaledHeight - overscrollY;
-        let maxY = overscrollY;
+        // แกน X (แนวนอน)
+        if (scaledWidth <= mapContainer.clientWidth) {
+            // ถ้าซูมออกจนภาพเล็กกว่าจอ -> จับขึงให้อยู่กึ่งกลาง แต่ยอมให้ถูซ้ายขวาได้ 60px
+            const cx = (mapContainer.clientWidth - scaledWidth) / 2;
+            minX = cx - padding;
+            maxX = cx + padding;
+        } else {
+            // ถ้าซูมเข้าจนภาพใหญ่กว่าจอ -> ขยับได้จนสุดขอบภาพ + ทะลุขอบได้ 60px
+            minX = mapContainer.clientWidth - scaledWidth - padding;
+            maxX = padding;
+        }
 
+        // แกน Y (แนวตั้ง)
+        if (scaledHeight <= mapContainer.clientHeight) {
+            const cy = (mapContainer.clientHeight - scaledHeight) / 2;
+            minY = cy - padding;
+            maxY = cy + padding;
+        } else {
+            minY = mapContainer.clientHeight - scaledHeight - padding;
+            maxY = padding;
+        }
+
+        // บังคับไม่ให้ลากหลุดกรอบที่เราตีเส้นไว้
         if (panX < minX) panX = minX;
         if (panX > maxX) panX = maxX;
         if (panY < minY) panY = minY;
@@ -279,8 +299,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error("เกิดข้อผิดพลาด:", error);
             }
         } else {
-            if (mapImage.complete) setInitialLocation(193, 175, 1.8, false);
-            else mapImage.onload = () => setInitialLocation(193, 175, 1.8, false);
+            if (mapImage.complete) setInitialLocation(500, 200, 1.8, false);
+            else mapImage.onload = () => setInitialLocation(500, 175, 1.8, false);
         }
     }
 
