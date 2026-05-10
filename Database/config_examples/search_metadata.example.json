@@ -1,0 +1,19 @@
+[
+  {
+    "category": "course",
+    "course_id": "CS111",
+    "sec": "650001",
+    "node_id": "122"
+  },
+  {
+    "category": "course",
+    "course_id": "CS232",
+    "sec": "650001",
+    "node_id": "LC3_F2_232"
+  },
+  {
+    "category": "event",
+    "name": "Open House (จุดลงทะเบียน)",
+    "node_id": "hallway-5"
+  }
+]

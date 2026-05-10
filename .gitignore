@@ -1,0 +1,33 @@
+# Python — ไฟล์ที่ Python สร้างเองตอน run
+__pycache__/
+*.py[cod]
+
+# Virtual environment — ไม่ต้อง commit ขึ้น repo
+.venv/
+venv/
+env/
+
+# Environment variables — เก็บ secrets ห้าม commit เด็ดขาด
+.env
+*.env
+
+# Lambda build artifacts — ไฟล์ zip ที่ build แล้ว
+Backend/lambdas/*/build/
+Backend/lambdas/*/*.zip
+
+# AWS credentials — ห้าม commit เด็ดขาด
+.aws/
+aws-credentials*
+*.pem
+*.key
+
+# macOS files
+.DS_Store
+__MACOSX/
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log

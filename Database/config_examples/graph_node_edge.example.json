@@ -1,0 +1,17 @@
+{
+  "node_example": {
+    "id": "LC3_F2_232",
+    "name": "232",
+    "floor": 2,
+    "x": 780,
+    "y": 340,
+    "type": "room",
+    "label": "ห้องเรียน"
+  },
+  "edge_example": {
+    "from": "LC3_F2_232",
+    "to": "LC3_F2_hallway-12",
+    "type": "walk",
+    "distance": 6
+  }
+}

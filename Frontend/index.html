@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>LC3-Navigator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/search-addon.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- ─── MAP ─── -->
+    <div class="map-container" id="mapContainer">
+        <div id="mapWrapper">
+            <img src="resources/LC3-MAP-1stFloor.svg" id="mapImage" alt="Map Floor">
+        </div>
+    </div>
+
+    <!-- ─── FLOOR SWITCHER ─── -->
+    <div class="floor-controls" id="floorControls">
+        <button class="floor-btn" data-floor="2">2</button>
+        <button class="floor-btn active" data-floor="1">1</button>
+    </div>
+
+    <!-- ─── ZOOM (bottom-left) ─── -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomIn"><i class="fas fa-plus"></i></button>
+        <button class="zoom-btn" id="zoomOut"><i class="fas fa-minus"></i></button>
+    </div>
+
+    <!-- ─── EVENT BUTTON (bottom-left, above zoom) ─── -->
+    <button class="event-fab" id="eventFab" aria-label="กิจกรรมวันนี้">
+        <i class="fas fa-calendar-day"></i>
+        <span>กิจกรรม</span>
+    </button>
+
+    <!-- ─── SEARCH OVERLAY ─── -->
+    <div class="search-overlay" id="search-panel">
+
+        <div class="search-card">
+          <div class="search-card-inner">
+
+            <!-- Single search bar -->
+            <div class="search-box" id="single-search-box" style="margin-bottom:0; border:none; border-radius:0;">
+                <div class="logo-pill">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <input type="text" id="searchInput" placeholder="ค้นหาห้อง, วิชา, งาน…" autocomplete="off">
+                <i class="fas fa-times" id="clearSearch"></i>
+                <button id="langToggle" class="lang-toggle-inline">TH</button>
+            </div>
+
+
+
+            <!-- FROM / TO panel -->
+            <div id="search-panel-content" class="collapsible-content">
+                <div class="input-group">
+
+                    <div class="input-wrapper">
+                        <div class="nav-row">
+                            <span class="nav-row-label">FROM</span>
+                            <input type="text" id="start-query" placeholder="จุดเริ่มต้น…" autocomplete="off">
+                        </div>
+                        <div class="suggestion-list" id="start-suggestions"></div>
+                    </div>
+
+                    <div class="input-wrapper">
+                        <div class="nav-row">
+                            <span class="nav-row-label">TO</span>
+                            <input type="text" id="goal-query" placeholder="ปลายทาง…" autocomplete="off">
+                        </div>
+                        <div class="suggestion-list" id="goal-suggestions"></div>
+                    </div>
+
+                    <button id="btn-navigate" onclick="navigateUser(event)">
+                        <i class="fas fa-route"></i> นำทาง
+                    </button>
+                </div>
+            </div>
+
+          </div><!-- /.search-card-inner -->
+        </div><!-- /.search-card -->
+
+    </div><!-- /.search-overlay -->
+
+    <!-- ─── BOTTOM SHEET ─── -->
+    <div id="bottomSheet" class="bottom-sheet">
+        <div class="drag-handle-container" id="dragHandle">
+            <div class="drag-handle"></div>
+        </div>
+        <div id="sheetContent" class="sheet-content"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+    <script src="js/task1-room-search-addon.js"></script>
+    <script src="js/task2-course-sec-addon.js"></script>
+    <script src="js/task3-event-search-addon.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const singleBox = document.getElementById('single-search-box');
+        const panel     = document.getElementById('search-panel-content');
+
+        if (singleBox && panel) {
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.id   = 'addonSearchPanelToggle';
+            toggle.className = 'addon-search-toggle';
+            toggle.setAttribute('aria-label', 'Toggle navigation panel');
+            toggle.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            singleBox.appendChild(toggle);
+
+            toggle.addEventListener('click', () => {
+                panel.classList.toggle('collapsed');
+                toggle.classList.toggle('rotated');
+            });
+        }
+
+        /* ── ซ่อน Event FAB เมื่อ bottom sheet แสดงอยู่ ── */
+        const bottomSheet = document.getElementById('bottomSheet');
+        const eventFab    = document.getElementById('eventFab');
+        if (bottomSheet && eventFab) {
+            const obs = new MutationObserver(() => {
+                const isOpen = bottomSheet.classList.contains('show');
+                if (isOpen) {
+                    eventFab.classList.add('hidden');
+                } else {
+                    eventFab.classList.remove('hidden');
+                }
+            });
+            obs.observe(bottomSheet, { attributes: true, attributeFilter: ['class'] });
+        }
+
+        /* ── Event FAB ── */
+        const sheetContent = document.getElementById('sheetContent');
+        if (eventFab && bottomSheet && sheetContent) {
+            eventFab.addEventListener('click', showEventSheet);
+        }
+
+        function showEventSheet() {
+            const renderEvents = (items) => {
+                const today = new Date().toLocaleDateString('th-TH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+                const t = window.__i18n?.[window.__lang || 'th'] || {};
+                let html = `
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                    <div class="result-icon"><i class="fas fa-calendar-day"></i></div>
+                    <div>
+                      <div style="font-size:15px;font-weight:600;color:var(--on-surface);">${t.eventTitle||'กิจกรรมวันนี้'}</div>
+                      <div style="font-size:12px;color:var(--on-surface-3);">${today}</div>
+                    </div>
+                  </div>`;
+                if (!items || items.length === 0) {
+                    html += `<div class="result-empty">
+                        <i class="fas fa-calendar-xmark"></i>
+                        <p>ไม่มีกิจกรรมในวันนี้</p>
+                    </div>`;
+                } else {
+                    items.forEach(ev => {
+                        const roomLabel = ev.RoomNumber || ev.node_id || '-';
+                        html += `
+                          <div class="result-item" onclick="selectEventLocation('${ev.node_id||''}',${ev.X||0},${ev.Y||0},'${ev.SearchTerm||ev.name||''}')">
+                            <div class="result-icon cat-event"><i class="fas fa-calendar-alt"></i></div>
+                            <div class="result-text">
+                              <b>${ev.SearchTerm || ev.name || 'กิจกรรม'}</b>
+                              <small><i class="fas fa-location-dot" style="font-size:10px;margin-right:3px;"></i>ห้อง ${roomLabel}</small>
+                            </div>
+                            <i class="fas fa-chevron-right result-chevron"></i>
+                          </div>`;
+                    });
+                }
+                /* close button */
+                html += `<div style="padding-top:10px;border-top:1px solid var(--border);margin-top:10px;">
+                    <button onclick="document.getElementById('bottomSheet').classList.remove('show')"
+                        class="route-btn" style="width:100%;justify-content:center;">
+                        ปิด
+                    </button></div>`;
+                sheetContent.innerHTML = html;
+                bottomSheet.classList.add('show');
+            };
+
+            const addonItems = window.__cs232SearchAddon?.items?.filter(i => i.category === 'event');
+            if (addonItems && addonItems.length > 0) {
+                renderEvents(addonItems);
+            } else {
+                fetch('event_metadata.json').then(r=>r.json())
+                    .then(data => renderEvents(data.map(ev => {
+                        let node = null;
+                        const tryIds = [ev.node_id, 'LC3_' + ev.node_id, 'LC3_F2_' + ev.node_id];
+                        if (window.__cs232SearchAddon && typeof window.__cs232SearchAddon.findNode === 'function') {
+                            for (const id of tryIds) { node = window.__cs232SearchAddon.findNode(id); if (node) break; }
+                        }
+                        return {
+                            SearchTerm: ev.name || 'กิจกรรม',
+                            node_id: node ? node.id : ev.node_id,
+                            RoomNumber: node ? (node.name || ev.node_id) : ev.node_id,
+                            X: node ? node.x : 0,
+                            Y: node ? node.y : 0
+                        };
+                    }))).catch(() => renderEvents([]));
+            }
+        }
+
+        window.selectEventLocation = function(nodeId, x, y, name) {
+            const goalInput = document.getElementById('goal-query');
+            if (goalInput && nodeId) {
+                // ลอง resolve node จาก graph เพื่อได้พิกัดที่ถูกต้อง
+                let resolvedNode = null;
+                if (window.__cs232SearchAddon && typeof window.__cs232SearchAddon.findNode === 'function') {
+                    resolvedNode = window.__cs232SearchAddon.findNode(nodeId)
+                        || window.__cs232SearchAddon.findNode('LC3_' + nodeId)
+                        || window.__cs232SearchAddon.findNode('LC3_F2_' + nodeId);
+                }
+                const display = nodeId.replace('LC3_','').replace('F2_','');
+                if (resolvedNode) {
+                    goalInput.value = resolvedNode.name || display;
+                    goalInput.dataset.nodeId = resolvedNode.id;
+                    if (typeof setInitialLocation === 'function') {
+                        setInitialLocation(resolvedNode.x, resolvedNode.y, 2.8);
+                    }
+                } else {
+                    goalInput.value = display;
+                    goalInput.dataset.nodeId = nodeId;
+                    if (typeof setInitialLocation === 'function' && x && y) {
+                        setInitialLocation(x, y, 2.8);
+                    }
+                }
+            }
+            bottomSheet.classList.remove('show');
+        };
+    });
+    </script>
+
+</body>
+</html>

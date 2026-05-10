@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>LC3 Navigator Admin Guide</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  
+<style>
+body { font-family: "Noto Sans Thai", "Noto Sans", Arial, sans-serif; line-height: 1.65; max-width: 980px; margin: 32px auto; padding: 0 24px; color: #222; }
+h1, h2, h3 { color: #17365d; line-height: 1.25; }
+h1 { border-bottom: 3px solid #17365d; padding-bottom: 10px; }
+h2 { border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-top: 32px; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+th, td { border: 1px solid #ccc; padding: 8px 10px; vertical-align: top; }
+th { background: #f3f6fa; }
+code { background: #f6f8fa; padding: 2px 4px; border-radius: 4px; }
+pre { background: #f6f8fa; padding: 12px; border-radius: 8px; overflow-x: auto; border: 1px solid #e5e7eb; }
+pre code { background: transparent; padding: 0; }
+blockquote { border-left: 4px solid #93c5fd; padding-left: 14px; color: #374151; background: #eff6ff; margin: 16px 0; }
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">LC3 Navigator Admin Guide</h1>
+</header>
+<h1 id="lc3-navigator---admin-guide-config-format-และการอปเดตระบบ">LC3
+Navigator - Admin Guide: Config Format และการอัปเดตระบบ</h1>
+<p><strong>Task:</strong> Task1: US6 (System Design)<br />
+<strong>Project:</strong> CS232-Map_Navigation / LC3 Navigator<br />
+<strong>Purpose:</strong> คู่มือนี้ใช้สำหรับ Admin ที่ต้องการแก้ข้อมูลห้อง เส้นทาง
+รายวิชา event และรูปแผนผังชั้น โดยไม่ต้องแก้ logic หลักของระบบ</p>
+<hr />
+<h2 id="ภาพรวมตาม-architecture-ลาสด">1. ภาพรวมตาม Architecture ล่าสุด</h2>
+<p>ระบบ LC3 Navigator ใช้ AWS Serverless Architecture ตามที่ออกแบบไว้
+โดยแบ่งข้อมูลออกเป็น 2 bucket หลัก และใช้ Lambda 3 ตัวในการทำงาน</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>ส่วนของระบบ</th>
+<th>Resource จริง</th>
+<th>หน้าที่</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Static Website Bucket</td>
+<td><code>lc3-navigator-static-staging</code></td>
+<td>เก็บไฟล์หน้าเว็บ เช่น HTML, CSS, JavaScript</td>
+</tr>
+<tr class="even">
+<td>Config Bucket</td>
+<td><code>lc3-navigator-config-staging</code></td>
+<td>เก็บไฟล์ config เช่น <code>graph.json</code>,
+<code>search_metadata.json</code> และ floor plan</td>
+</tr>
+<tr class="odd">
+<td>Search Lambda</td>
+<td><code>lc3-search-staging</code></td>
+<td>ค้นหาห้อง วิชา event และสถานที่จาก DynamoDB</td>
+</tr>
+<tr class="even">
+<td>Pathfinding Lambda</td>
+<td><code>lc3-pathfinding-staging</code></td>
+<td>คำนวณเส้นทางจาก graph config</td>
+</tr>
+<tr class="odd">
+<td>Direction Lambda</td>
+<td><code>lc3-direction-staging</code></td>
+<td>แปลง path เป็นคำแนะนำการเดิน</td>
+</tr>
+<tr class="even">
+<td>DynamoDB</td>
+<td><code>LC3_CourseMapping_staging</code></td>
+<td>เก็บ search index สำหรับค้นหา</td>
+</tr>
+<tr class="odd">
+<td>GitHub Actions</td>
+<td><code>Deploy to Staging</code></td>
+<td>Deploy config, frontend, lambda และ seed DynamoDB อัตโนมัติ</td>
+</tr>
+</tbody>
+</table>
+<p>สรุป flow การทำงานหลัง Admin แก้ config คือ</p>
+<pre class="text"><code>Admin แก้ไฟล์ config ใน repo
+-&gt; push เข้า branch dev
+-&gt; GitHub Actions ตรวจ JSON
+-&gt; upload config ไป S3 config bucket
+-&gt; seed ข้อมูลลง DynamoDB
+-&gt; deploy frontend ไป static bucket
+-&gt; deploy Lambda ทั้ง 3 ตัว
+-&gt; update CONFIG_VERSION เพื่อให้ Lambda โหลด config ล่าสุด</code></pre>
+<hr />
+<h2 id="ไฟล-config-ท-admin-ตองรจก">2. ไฟล์ Config ที่ Admin ต้องรู้จัก</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>ไฟล์ / Folder</th>
+<th>หน้าที่</th>
+<th>ถูก deploy ไปที่</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Database/graph.json</code></td>
+<td>เก็บ node, edge, ห้อง, ชั้น, พิกัด และเส้นทาง</td>
+<td><code>s3://lc3-navigator-config-staging/graph/graph.json</code></td>
+</tr>
+<tr class="even">
+<td><code>Database/search_metadata.json</code></td>
+<td>เก็บ mapping ของ course / event ไปยัง node หรือห้อง</td>
+<td><code>s3://lc3-navigator-config-staging/config/search_metadata.json</code></td>
+</tr>
+<tr class="odd">
+<td><code>Frontend/resources/</code></td>
+<td>เก็บรูป floor plan เช่น PNG, JPG, SVG</td>
+<td><code>s3://lc3-navigator-config-staging/floor-plans/</code></td>
+</tr>
+<tr class="even">
+<td><code>Database/config_format/</code></td>
+<td>เก็บ schema อธิบาย format ของ config</td>
+<td>ใช้เป็นเอกสารอ้างอิงใน repo</td>
+</tr>
+<tr class="odd">
+<td><code>Database/config_examples/</code></td>
+<td>เก็บตัวอย่าง config สำหรับ Admin</td>
+<td>ใช้เป็นตัวอย่างก่อนแก้ไฟล์จริง</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>หมายเหตุ: ไฟล์ใน <code>Database/config_format/</code> และ
+<code>Database/config_examples/</code> เป็นไฟล์ช่วยอธิบาย ไม่ใช่ไฟล์หลักที่ Lambda
+ใช้โดยตรง</p>
+</blockquote>
+<hr />
+<h2 id="config-format-databasegraph.json">3. Config Format:
+<code>Database/graph.json</code></h2>
+<p><code>graph.json</code> คือไฟล์แผนที่ของอาคารในรูปแบบ graph ใช้สำหรับ
+pathfinding และ direction</p>
+<p>โครงสร้างหลักของไฟล์คือ</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;building&quot;</span><span class="fu">:</span> <span class="st">&quot;LC3&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;nodes&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;edges&quot;</span><span class="fu">:</span> <span class="ot">[]</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="field-building">3.1 Field: <code>building</code></h3>
+<table>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>ตัวอย่าง</th>
+<th>คำอธิบาย</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>building</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>LC3</code></td>
+<td>ชื่ออาคาร</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="field-nodes">3.2 Field: <code>nodes</code></h3>
+<p><code>nodes</code> คือรายการจุดบนแผนที่ เช่น ห้องเรียน ทางเข้า ทางเดิน บันได
+และจุดสำคัญ</p>
+<p>ตัวอย่าง node จริงในระบบ</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;LC3_111&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;111&quot;</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;floor&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;x&quot;</span><span class="fu">:</span> <span class="dv">83</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;y&quot;</span><span class="fu">:</span> <span class="dv">169</span><span class="fu">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;room&quot;</span><span class="fu">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;ห้องบรรยายเรียนรวม&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>ตัวอย่าง</th>
+<th>คำอธิบาย</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>id</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>LC3_111</code></td>
+<td>รหัส node ต้องไม่ซ้ำกัน</td>
+</tr>
+<tr class="even">
+<td><code>name</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>111</code></td>
+<td>ชื่อที่ใช้แสดงหรือใช้ค้นหา</td>
+</tr>
+<tr class="odd">
+<td><code>floor</code></td>
+<td>number</td>
+<td>yes</td>
+<td><code>1</code></td>
+<td>ชั้นของ node</td>
+</tr>
+<tr class="even">
+<td><code>x</code></td>
+<td>number</td>
+<td>yes</td>
+<td><code>83</code></td>
+<td>พิกัดแกน X บนรูป floor plan</td>
+</tr>
+<tr class="odd">
+<td><code>y</code></td>
+<td>number</td>
+<td>yes</td>
+<td><code>169</code></td>
+<td>พิกัดแกน Y บนรูป floor plan</td>
+</tr>
+<tr class="even">
+<td><code>type</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>room</code></td>
+<td>ประเภท node เช่น <code>room</code>, <code>entrance</code>,
+<code>junction</code>, <code>stairs</code>, <code>facility</code></td>
+</tr>
+<tr class="odd">
+<td><code>label</code></td>
+<td>string</td>
+<td>optional</td>
+<td><code>ห้องบรรยายเรียนรวม</code></td>
+<td>คำอธิบายเพิ่มเติม</td>
+</tr>
+</tbody>
+</table>
+<p>ประเภท node ที่ใช้ในระบบปัจจุบันมี เช่น</p>
+<pre class="text"><code>room, entrance, junction, stairs, facility</code></pre>
+<hr />
+<h3 id="field-edges">3.3 Field: <code>edges</code></h3>
+<p><code>edges</code> คือเส้นเชื่อมระหว่าง node
+ใช้บอกว่าจุดใดเดินเชื่อมถึงจุดใดได้</p>
+<p>ตัวอย่าง edge จริงในระบบ</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="st">&quot;LC3_F2_hallway-1&quot;</span><span class="fu">,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;to&quot;</span><span class="fu">:</span> <span class="st">&quot;LC3_F2_entry-32&quot;</span><span class="fu">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;walk&quot;</span><span class="fu">,</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;distance&quot;</span><span class="fu">:</span> <span class="dv">0</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>ตัวอย่าง</th>
+<th>คำอธิบาย</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>from</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>LC3_F2_hallway-1</code></td>
+<td>node เริ่มต้น</td>
+</tr>
+<tr class="even">
+<td><code>to</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>LC3_F2_entry-32</code></td>
+<td>node ปลายทาง</td>
+</tr>
+<tr class="odd">
+<td><code>type</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>walk</code></td>
+<td>ประเภทเส้นทาง เช่น <code>walk</code>, <code>stairs</code>,
+<code>up</code>, <code>down</code></td>
+</tr>
+<tr class="even">
+<td><code>distance</code></td>
+<td>number</td>
+<td>yes</td>
+<td><code>0</code></td>
+<td>ระยะทางหรือค่าน้ำหนักของเส้นทาง</td>
+</tr>
+</tbody>
+</table>
+<p>ข้อสำคัญ: ค่า <code>from</code> และ <code>to</code> ต้องเป็น node
+ที่มีอยู่จริงใน <code>nodes</code></p>
+<hr />
+<h3 id="ตวอยางการเพมหองใหมใน-graph.json">3.4 ตัวอย่างการเพิ่มห้องใหม่ใน
+<code>graph.json</code></h3>
+<p>ถ้าต้องการเพิ่มห้อง <code>232</code> ชั้น 2 ให้ทำ 2 ส่วน</p>
+<ol type="1">
+<li>เพิ่ม node ใหม่ใน <code>nodes</code></li>
+</ol>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;LC3_F2_232&quot;</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;232&quot;</span><span class="fu">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;floor&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;x&quot;</span><span class="fu">:</span> <span class="dv">780</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;y&quot;</span><span class="fu">:</span> <span class="dv">340</span><span class="fu">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;room&quot;</span><span class="fu">,</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;ห้องเรียน&quot;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<ol start="2" type="1">
+<li>เพิ่ม edge เชื่อมห้องกับทางเดินใกล้สุด</li>
+</ol>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="st">&quot;LC3_F2_232&quot;</span><span class="fu">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;to&quot;</span><span class="fu">:</span> <span class="st">&quot;LC3_F2_hallway-12&quot;</span><span class="fu">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;walk&quot;</span><span class="fu">,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;distance&quot;</span><span class="fu">:</span> <span class="dv">6</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h2 id="config-format-databasesearch_metadata.json">4. Config Format:
+<code>Database/search_metadata.json</code></h2>
+<p><code>search_metadata.json</code> ใช้สำหรับเพิ่มข้อมูลที่ต้องการให้ search เจอ
+เช่น รายวิชาและ event</p>
+<p>โครงสร้างไฟล์เป็น array ของ object</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;course&quot;</span><span class="fu">,</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;course_id&quot;</span><span class="fu">:</span> <span class="st">&quot;CS111&quot;</span><span class="fu">,</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sec&quot;</span><span class="fu">:</span> <span class="st">&quot;650001&quot;</span><span class="fu">,</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;node_id&quot;</span><span class="fu">:</span> <span class="st">&quot;122&quot;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;event&quot;</span><span class="fu">,</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Open House (จุดลงทะเบียน)&quot;</span><span class="fu">,</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;node_id&quot;</span><span class="fu">:</span> <span class="st">&quot;hallway-5&quot;</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
+<h3 id="course-mapping">4.1 Course Mapping</h3>
+<p>ใช้เมื่อ Admin ต้องการให้ user ค้นหาด้วยรหัสวิชาและ section</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;course&quot;</span><span class="fu">,</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;course_id&quot;</span><span class="fu">:</span> <span class="st">&quot;CS111&quot;</span><span class="fu">,</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sec&quot;</span><span class="fu">:</span> <span class="st">&quot;650001&quot;</span><span class="fu">,</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;node_id&quot;</span><span class="fu">:</span> <span class="st">&quot;122&quot;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>คำอธิบาย</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>category</code></td>
+<td>string</td>
+<td>yes</td>
+<td>ต้องเป็น <code>course</code></td>
+</tr>
+<tr class="even">
+<td><code>course_id</code></td>
+<td>string</td>
+<td>yes</td>
+<td>รหัสวิชา เช่น <code>CS111</code></td>
+</tr>
+<tr class="odd">
+<td><code>sec</code></td>
+<td>string</td>
+<td>yes</td>
+<td>section เช่น <code>650001</code></td>
+</tr>
+<tr class="even">
+<td><code>node_id</code></td>
+<td>string</td>
+<td>yes</td>
+<td>ห้องหรือ node ปลายทาง ต้อง resolve ได้จาก <code>graph.json</code></td>
+</tr>
+</tbody>
+</table>
+<p>ระบบ seed จะพยายามหา <code>node_id</code> จาก <code>id</code> ก่อน
+และถ้าไม่เจอจะลองหาโดยใช้ <code>name</code> ของ node ดังนั้นในระบบนี้
+<code>node_id</code> อาจเป็นได้ทั้ง <code>LC3_122</code> หรือ
+<code>122</code> ถ้าใน <code>graph.json</code> มี node name เป็น
+<code>122</code></p>
+<hr />
+<h3 id="event-mapping">4.2 Event Mapping</h3>
+<p>ใช้เมื่อ Admin ต้องการให้ user ค้นหาด้วยชื่อ event</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;event&quot;</span><span class="fu">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Open House (จุดลงทะเบียน)&quot;</span><span class="fu">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;node_id&quot;</span><span class="fu">:</span> <span class="st">&quot;hallway-5&quot;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>คำอธิบาย</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>category</code></td>
+<td>string</td>
+<td>yes</td>
+<td>ต้องเป็น <code>event</code></td>
+</tr>
+<tr class="even">
+<td><code>name</code></td>
+<td>string</td>
+<td>yes</td>
+<td>ชื่อ event ที่ user จะค้นหา</td>
+</tr>
+<tr class="odd">
+<td><code>node_id</code></td>
+<td>string</td>
+<td>yes</td>
+<td>ห้องหรือ node ปลายทาง ต้อง resolve ได้จาก <code>graph.json</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="config-format-reference-files">5. Config Format Reference
+Files</h2>
+<p>ใน package นี้มีไฟล์ format และตัวอย่าง config ให้ใช้ประกอบการแก้ไฟล์จริง</p>
+<h3 id="databaseconfig_formatgraph.schema.json">5.1
+<code>Database/config_format/graph.schema.json</code></h3>
+<p>ใช้เป็น reference ของ format <code>graph.json</code></p>
+<p>ช่วยอธิบายว่า graph ต้องมี</p>
+<ul>
+<li><code>building</code></li>
+<li><code>nodes</code></li>
+<li><code>edges</code></li>
+</ul>
+<p>และแต่ละ node / edge ควรมี field อะไรบ้าง</p>
+<hr />
+<h3 id="databaseconfig_formatsearch_metadata.schema.json">5.2
+<code>Database/config_format/search_metadata.schema.json</code></h3>
+<p>ใช้เป็น reference ของ format <code>search_metadata.json</code></p>
+<p>ช่วยอธิบายว่า search metadata รองรับ 2 category หลัก</p>
+<ul>
+<li><code>course</code></li>
+<li><code>event</code></li>
+</ul>
+<hr />
+<h3 id="databaseconfig_examplesgraph_node_edge.example.json">5.3
+<code>Database/config_examples/graph_node_edge.example.json</code></h3>
+<p>เป็นตัวอย่างการเพิ่ม node และ edge</p>
+<p>ใช้ดูเป็นต้นแบบก่อนแก้ <code>Database/graph.json</code></p>
+<hr />
+<h3 id="databaseconfig_examplessearch_metadata.example.json">5.4
+<code>Database/config_examples/search_metadata.example.json</code></h3>
+<p>เป็นตัวอย่างการเพิ่ม course และ event</p>
+<p>ใช้ดูเป็นต้นแบบก่อนแก้ <code>Database/search_metadata.json</code></p>
+<hr />
+<h2 id="ขนตอนการอปเดต-config-สำหรบ-admin">6. ขั้นตอนการอัปเดต Config สำหรับ
+Admin</h2>
+<h3 id="ขนตอนท-1-เปดโปรเจกต">ขั้นตอนที่ 1: เปิดโปรเจกต์</h3>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">code</span> .</span></code></pre></div>
+<h3 id="ขนตอนท-2-แกไฟลทตองการ">ขั้นตอนที่ 2: แก้ไฟล์ที่ต้องการ</h3>
+<table>
+<thead>
+<tr class="header">
+<th>ต้องการแก้อะไร</th>
+<th>แก้ไฟล์</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ห้อง เส้นทาง node edge</td>
+<td><code>Database/graph.json</code></td>
+</tr>
+<tr class="even">
+<td>รายวิชา event search metadata</td>
+<td><code>Database/search_metadata.json</code></td>
+</tr>
+<tr class="odd">
+<td>รูปแผนผังชั้น</td>
+<td><code>Frontend/resources/</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ขนตอนท-3-ตรวจ-json-กอน-push">ขั้นตอนที่ 3: ตรวจ JSON ก่อน push</h3>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> json.tool Database/graph.json <span class="op">&gt;</span> /dev/null</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> json.tool Database/search_metadata.json <span class="op">&gt;</span> /dev/null</span></code></pre></div>
+<p>ถ้าไม่มี error แปลว่า JSON format ถูกต้อง</p>
+<h3 id="ขนตอนท-4-เชคไฟลทแก">ขั้นตอนที่ 4: เช็คไฟล์ที่แก้</h3>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span></code></pre></div>
+<h3 id="ขนตอนท-5-commit">ขั้นตอนที่ 5: Commit</h3>
+<p>กรณีแก้ config JSON</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add Database/graph.json Database/search_metadata.json</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;Update navigation config&quot;</span></span></code></pre></div>
+<p>กรณีแก้ floor plan ด้วย</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add Database/graph.json Database/search_metadata.json Frontend/resources</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;Update navigation config and floor plans&quot;</span></span></code></pre></div>
+<h3 id="ขนตอนท-6-push-เขา-branch-dev">ขั้นตอนที่ 6: Push เข้า branch
+<code>dev</code></h3>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push origin dev</span></code></pre></div>
+<p>หลังจาก push แล้ว GitHub Actions จะ deploy อัตโนมัติ</p>
+<hr />
+<h2 id="สงท-github-actions-ทำใหอตโนมต">7. สิ่งที่ GitHub Actions
+ทำให้อัตโนมัติ</h2>
+<p>เมื่อ push เข้า branch <code>dev</code> workflow
+<code>Deploy to Staging</code> จะทำงานดังนี้</p>
+<ol type="1">
+<li>Validate <code>Database/graph.json</code></li>
+<li>Validate <code>Database/search_metadata.json</code></li>
+<li>Upload <code>Database/graph.json</code> ไปที่
+<code>s3://lc3-navigator-config-staging/graph/graph.json</code></li>
+<li>Upload <code>Database/search_metadata.json</code> ไปที่
+<code>s3://lc3-navigator-config-staging/config/search_metadata.json</code></li>
+<li>Upload <code>Frontend/resources/</code> ไปที่
+<code>s3://lc3-navigator-config-staging/floor-plans/</code></li>
+<li>Seed ข้อมูลใหม่ลง DynamoDB table
+<code>LC3_CourseMapping_staging</code></li>
+<li>Deploy Frontend ไปที่ <code>lc3-navigator-static-staging</code></li>
+<li>Deploy Lambda ทั้ง 3 ตัว</li>
+<li>Update <code>CONFIG_VERSION</code> ให้ Lambda โหลด config ล่าสุด</li>
+</ol>
+<hr />
+<h2 id="วธตรวจสอบหลง-deploy">8. วิธีตรวจสอบหลัง Deploy</h2>
+<h3 id="ตรวจ-github-actions">8.1 ตรวจ GitHub Actions</h3>
+<p>ไปที่ GitHub Repository แล้วเปิด</p>
+<pre class="text"><code>Actions &gt; Deploy to Staging</code></pre>
+<p>ต้องเห็น job เป็นสีเขียวทั้งหมด</p>
+<pre class="text"><code>Deploy Config to S3 and DynamoDB
+Deploy Frontend to Static S3
+Deploy Lambda Functions</code></pre>
+<hr />
+<h3 id="ตรวจ-config-bucket">8.2 ตรวจ Config Bucket</h3>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 ls s3://lc3-navigator-config-staging/graph/</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 ls s3://lc3-navigator-config-staging/config/</span></code></pre></div>
+<p>ควรเห็นไฟล์</p>
+<pre class="text"><code>graph.json
+search_metadata.json</code></pre>
+<hr />
+<h3 id="ตรวจ-dynamodb">8.3 ตรวจ DynamoDB</h3>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> dynamodb scan <span class="dt">\</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--table-name</span> LC3_CourseMapping_staging <span class="dt">\</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--select</span> COUNT</span></code></pre></div>
+<p>ควรเห็นจำนวนข้อมูลมากกว่า 0 เช่น</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;Count&quot;</span><span class="fu">:</span> <span class="dv">260</span><span class="fu">,</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ScannedCount&quot;</span><span class="fu">:</span> <span class="dv">260</span><span class="fu">,</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ConsumedCapacity&quot;</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="ตรวจ-lambda-environment-variables">8.4 ตรวจ Lambda Environment
+Variables</h3>
+<p>Search Lambda</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> lambda get-function-configuration <span class="dt">\</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--function-name</span> lc3-search-staging <span class="dt">\</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> <span class="st">&quot;Environment.Variables&quot;</span> <span class="dt">\</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> json</span></code></pre></div>
+<p>ควรมี</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;DDB_TABLE&quot;</span><span class="fu">:</span> <span class="st">&quot;LC3_CourseMapping_staging&quot;</span><span class="fu">,</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;CONFIG_VERSION&quot;</span><span class="fu">:</span> <span class="st">&quot;commit-id&quot;</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Pathfinding Lambda</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> lambda get-function-configuration <span class="dt">\</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--function-name</span> lc3-pathfinding-staging <span class="dt">\</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> <span class="st">&quot;Environment.Variables&quot;</span> <span class="dt">\</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> json</span></code></pre></div>
+<p>ควรมี</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;GRAPH_S3_BUCKET&quot;</span><span class="fu">:</span> <span class="st">&quot;lc3-navigator-config-staging&quot;</span><span class="fu">,</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;GRAPH_S3_KEY&quot;</span><span class="fu">:</span> <span class="st">&quot;graph/graph.json&quot;</span><span class="fu">,</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;CONFIG_VERSION&quot;</span><span class="fu">:</span> <span class="st">&quot;commit-id&quot;</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Direction Lambda</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> lambda get-function-configuration <span class="dt">\</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--function-name</span> lc3-direction-staging <span class="dt">\</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> <span class="st">&quot;Environment.Variables&quot;</span> <span class="dt">\</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> json</span></code></pre></div>
+<p>ควรมี</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;GRAPH_S3_BUCKET&quot;</span><span class="fu">:</span> <span class="st">&quot;lc3-navigator-config-staging&quot;</span><span class="fu">,</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;GRAPH_S3_KEY&quot;</span><span class="fu">:</span> <span class="st">&quot;graph/graph.json&quot;</span><span class="fu">,</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;CONFIG_VERSION&quot;</span><span class="fu">:</span> <span class="st">&quot;commit-id&quot;</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h2 id="วธทดสอบจากหนาเวบ">9. วิธีทดสอบจากหน้าเว็บ</h2>
+<h3 id="test-1-คนหาหอง">Test 1: ค้นหาห้อง</h3>
+<ol type="1">
+<li>เปิดหน้าเว็บ LC3 Navigator</li>
+<li>ค้นหาห้องที่มีอยู่ใน <code>graph.json</code></li>
+<li>ระบบต้องแสดงผลลัพธ์ห้องที่ค้นหา</li>
+</ol>
+<p>Expected Result</p>
+<pre class="text"><code>ระบบค้นหาห้องเจอ และแสดงข้อมูลถูกต้อง</code></pre>
+<h3 id="test-2-คนหาวชา">Test 2: ค้นหาวิชา</h3>
+<ol type="1">
+<li>เพิ่มหรือแก้ course ใน <code>search_metadata.json</code></li>
+<li>Push เข้า branch <code>dev</code></li>
+<li>รอ GitHub Actions deploy สำเร็จ</li>
+<li>เปิดหน้าเว็บแล้วค้นหารหัสวิชาหรือชื่อวิชา</li>
+</ol>
+<p>Expected Result</p>
+<pre class="text"><code>ระบบค้นหาวิชาเจอ และแสดงห้องที่ map กับวิชานั้นถูกต้อง</code></pre>
+<h3 id="test-3-คนหา-event">Test 3: ค้นหา Event</h3>
+<ol type="1">
+<li>เพิ่มหรือแก้ event ใน <code>search_metadata.json</code></li>
+<li>Push เข้า branch <code>dev</code></li>
+<li>รอ GitHub Actions deploy สำเร็จ</li>
+<li>เปิดหน้าเว็บแล้วค้นหาชื่อ event</li>
+</ol>
+<p>Expected Result</p>
+<pre class="text"><code>ระบบค้นหา event เจอ และแสดงห้องของ event ถูกต้อง</code></pre>
+<h3 id="test-4-pathfinding">Test 4: Pathfinding</h3>
+<ol type="1">
+<li>เลือกจุดเริ่มต้น</li>
+<li>เลือกจุดปลายทาง</li>
+<li>กดค้นหาเส้นทาง</li>
+</ol>
+<p>Expected Result</p>
+<pre class="text"><code>ระบบแสดงเส้นทางตาม graph.json ล่าสุด</code></pre>
+<h3 id="test-5-direction">Test 5: Direction</h3>
+<ol type="1">
+<li>ค้นหาเส้นทาง</li>
+<li>ตรวจสอบคำแนะนำการเดิน</li>
+</ol>
+<p>Expected Result</p>
+<pre class="text"><code>ระบบแสดงคำแนะนำการเดินได้ถูกต้อง</code></pre>
+<hr />
+<h2 id="troubleshooting">10. Troubleshooting</h2>
+<h3 id="ปญหา-1-github-actions-fail-ท-validate-config-json-files">ปัญหา 1:
+GitHub Actions fail ที่ Validate config JSON files</h3>
+<p>สาเหตุที่เป็นไปได้</p>
+<ul>
+<li>JSON มี comma เกิน</li>
+<li>ลืมปิด <code>}</code> หรือ <code>]</code></li>
+<li>ใช้ quote ผิด</li>
+<li>แก้ไฟล์แล้ว structure ไม่ถูกต้อง</li>
+</ul>
+<p>วิธีแก้</p>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> json.tool Database/graph.json</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> json.tool Database/search_metadata.json</span></code></pre></div>
+<hr />
+<h3 id="ปญหา-2-search-ไมเจอขอมลใหม">ปัญหา 2: Search ไม่เจอข้อมูลใหม่</h3>
+<p>ให้เช็คตามลำดับ</p>
+<ol type="1">
+<li>GitHub Actions ผ่านไหม</li>
+<li><code>search_metadata.json</code> ถูก upload ไป config bucket
+แล้วไหม</li>
+<li>DynamoDB มีข้อมูลใหม่ไหม</li>
+<li>Search Lambda ใช้ table ถูกไหม</li>
+</ol>
+<p>คำสั่งเช็ค DynamoDB</p>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> dynamodb scan <span class="dt">\</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--table-name</span> LC3_CourseMapping_staging <span class="dt">\</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--select</span> COUNT</span></code></pre></div>
+<p>คำสั่งเช็ค Search Lambda</p>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> lambda get-function-configuration <span class="dt">\</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--function-name</span> lc3-search-staging <span class="dt">\</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> <span class="st">&quot;Environment.Variables&quot;</span> <span class="dt">\</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> json</span></code></pre></div>
+<hr />
+<h3 id="ปญหา-3-pathfinding-ยงใช-graph-เกา">ปัญหา 3: Pathfinding ยังใช้
+graph เก่า</h3>
+<p>ให้เช็คว่า Lambda มี <code>CONFIG_VERSION</code> ล่าสุดหรือไม่</p>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> lambda get-function-configuration <span class="dt">\</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--function-name</span> lc3-pathfinding-staging <span class="dt">\</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--query</span> <span class="st">&quot;Environment.Variables&quot;</span> <span class="dt">\</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output</span> json</span></code></pre></div>
+<p>ถ้า <code>CONFIG_VERSION</code> เปลี่ยนตาม commit ล่าสุด แปลว่า Lambda ถูก
+refresh แล้ว</p>
+<hr />
+<h3 id="ปญหา-4-เปดเวบไซตแลว-frontend-ไมอปเดต">ปัญหา 4: เปิดเว็บไซต์แล้ว
+frontend ไม่อัปเดต</h3>
+<p>ให้ลอง hard refresh browser</p>
+<pre class="text"><code>Mac: Command + Shift + R
+Windows: Ctrl + F5</code></pre>
+<p>ถ้ายังไม่อัปเดต ให้เช็ค static bucket</p>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 ls s3://lc3-navigator-static-staging/</span></code></pre></div>
+<hr />
+<h2 id="checklist-กอน-push">11. Checklist ก่อน Push</h2>
+<p>ก่อน push ทุกครั้ง Admin ควรตรวจว่า</p>
+<ul class="task-list">
+<li><label><input type="checkbox" />แก้ไฟล์ถูกที่ เช่น
+<code>Database/graph.json</code> หรือ
+<code>Database/search_metadata.json</code></label></li>
+<li><label><input type="checkbox" />JSON format ถูกต้อง</label></li>
+<li><label><input type="checkbox" />node id ไม่ซ้ำกัน</label></li>
+<li><label><input type="checkbox" />edge อ้างถึง node ที่มีอยู่จริง</label></li>
+<li><label><input type="checkbox" />course / event อ้างถึง node ที่ resolve
+ได้จาก <code>graph.json</code></label></li>
+<li><label><input type="checkbox" />commit message
+สื่อความหมาย</label></li>
+<li><label><input type="checkbox" />GitHub Actions หลัง push
+ต้องเป็นสีเขียว</label></li>
+</ul>
+<hr />
+<h2 id="definition-of-done">12. Definition of Done</h2>
+<p>งาน US6 ถือว่าเสร็จเมื่อ</p>
+<ul>
+<li>Admin สามารถดู format ของ config ได้จากเอกสารนี้</li>
+<li>Admin มีตัวอย่าง config ให้ดูใน
+<code>Database/config_examples/</code></li>
+<li>Admin สามารถแก้ <code>graph.json</code> หรือ
+<code>search_metadata.json</code> ได้</li>
+<li>Admin สามารถ push เข้า branch <code>dev</code> ได้</li>
+<li>GitHub Actions deploy สำเร็จ</li>
+<li>Config ถูก upload ไป S3 config bucket</li>
+<li>DynamoDB ถูก seed ใหม่จาก config ล่าสุด</li>
+<li>Lambda ทั้ง 3 ตัวใช้ resource ถูกต้องตาม architecture</li>
+<li>หน้าเว็บค้นหาและนำทางจากข้อมูลล่าสุดได้</li>
+</ul>
+<hr />
+<h2 id="สรปแบบสนทสด">13. สรุปแบบสั้นที่สุด</h2>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. เปิด project</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ex">code</span> .</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. แก้ config</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="ex">code</span> Database/graph.json</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="ex">code</span> Database/search_metadata.json</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. ตรวจ JSON</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> json.tool Database/graph.json <span class="op">&gt;</span> /dev/null</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> json.tool Database/search_metadata.json <span class="op">&gt;</span> /dev/null</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. commit</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add Database/graph.json Database/search_metadata.json Frontend/resources</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;Update LC3 navigation config&quot;</span></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. deploy</span></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push origin dev</span></code></pre></div>
+<p>หลัง push ให้ตรวจที่ GitHub Actions ถ้า job เป็นสีเขียวทั้งหมด แปลว่า deploy
+สำเร็จ</p>
+</body>
+</html>

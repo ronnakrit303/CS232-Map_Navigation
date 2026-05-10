@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LC3 Search Metadata Config Schema",
+  "description": "Reference schema for Database/search_metadata.json used to seed course and event search mappings into DynamoDB.",
+  "type": "array",
+  "items": {
+    "oneOf": [
+      {
+        "title": "Course Section Mapping",
+        "type": "object",
+        "required": [
+          "category",
+          "course_id",
+          "sec",
+          "node_id"
+        ],
+        "properties": {
+          "category": {
+            "const": "course"
+          },
+          "course_id": {
+            "type": "string",
+            "examples": [
+              "CS111",
+              "CS232"
+            ]
+          },
+          "sec": {
+            "type": "string",
+            "examples": [
+              "650001"
+            ]
+          },
+          "node_id": {
+            "type": "string",
+            "examples": [
+              "122",
+              "LC3_122"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "title": "Event Mapping",
+        "type": "object",
+        "required": [
+          "category",
+          "name",
+          "node_id"
+        ],
+        "properties": {
+          "category": {
+            "const": "event"
+          },
+          "name": {
+            "type": "string",
+            "examples": [
+              "Open House (จุดลงทะเบียน)"
+            ]
+          },
+          "node_id": {
+            "type": "string",
+            "examples": [
+              "hallway-5",
+              "135",
+              "LC3_135"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  }
+}
